@@ -67,7 +67,7 @@ class ChatboxMessage:
         Return a new BeautifulSoup instance for the body of the message.
         :return: A new BeautifulSoup instance for the body of the message.
         """
-        return bs4.BeautifulSoup(self.body_io())
+        return bs4.BeautifulSoup(self.body_io(), "html.parser")
 
 
 class ChatboxConnector:
@@ -254,9 +254,8 @@ class ChatboxConnector:
         """
         messages_response = self.url_opener.open(self.messages_url)
         messages_string = messages_response.read().decode(self.server_encoding)
-        messages_soup = bs4.BeautifulSoup(io.StringIO(messages_string))
+        messages_soup = bs4.BeautifulSoup(io.StringIO(messages_string), "html.parser")
 
-        #all_trs = messages_soup.html.body.find_all("tr", recursive=False)
         all_trs = messages_soup.find_all("tr", recursive=False)
         if len(all_trs) == 0:
             # aw crap
