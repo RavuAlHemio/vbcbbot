@@ -18,7 +18,9 @@ def format_soup(soup):
                 # strip formatting
                 ret += format_soup(child)
             elif child.name == 'img':
-                if child.has_attr("alt") and child['alt'] != "":
+                if child.has_attr("title") and child['title'] != "":
+                    label = child['title']
+                elif child.has_attr("alt") and child['alt'] != "":
                     label = child['alt']
                 elif child.has_attr("src"):
                     label = posixpath.basename(child['src'])
