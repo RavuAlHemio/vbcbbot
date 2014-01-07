@@ -66,6 +66,7 @@ class ClientWindow:
 
     def run(self):
         self.tk = tkinter.Tk()
+        self.tk.title("vB Chatbox")
 
         self.chat_text = tkinter.scrolledtext.ScrolledText(self.tk)
         self.chat_text.grid(row=0, sticky=tkinter.W+tkinter.E+tkinter.N+tkinter.S)
