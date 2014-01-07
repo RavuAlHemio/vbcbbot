@@ -53,7 +53,9 @@ class ClientWindow:
             b=format_soup(message.body_soup()),
             s=sigil
         )
+        self.chat_text.config(state=tkinter.NORMAL)
         self.chat_text.insert(tkinter.END, msg)
+        self.chat_text.config(state=tkinter.DISABLED)
         self.chat_text.see(tkinter.END)
 
     def message_modified(self, message):
@@ -67,11 +69,10 @@ class ClientWindow:
 
         self.chat_text = tkinter.scrolledtext.ScrolledText(self.tk)
         self.chat_text.grid(row=0, sticky=tkinter.W+tkinter.E+tkinter.N+tkinter.S)
-        #self.chat_text.pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
+        self.chat_text.config(state=tkinter.DISABLED)
 
         self.chat_entry = tkinter.Entry(self.tk)
         self.chat_entry.grid(row=1, sticky=tkinter.W+tkinter.E+tkinter.S)
-        #self.chat_entry.pack(side=tkinter.TOP, fill=tkinter.X, expand=1)
         self.chat_entry.bind("<Return>", self.enter_pressed)
 
         self.tk.grid_rowconfigure(0, weight=1)
