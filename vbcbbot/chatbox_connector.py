@@ -256,7 +256,8 @@ class ChatboxConnector:
         messages_string = messages_response.read().decode(self.server_encoding)
         messages_soup = bs4.BeautifulSoup(io.StringIO(messages_string))
 
-        all_trs = messages_soup.html.body.find_all("tr", recursive=False)
+        #all_trs = messages_soup.html.body.find_all("tr", recursive=False)
+        all_trs = messages_soup.find_all("tr", recursive=False)
         if len(all_trs) == 0:
             # aw crap
             self.retry(retry, self.fetch_new_messages)
