@@ -86,6 +86,10 @@ class ClientWindow:
         self.connector = connector
         self.tk = None
 
+        # pre-declare
+        self.chat_text = None
+        self.chat_entry = None
+
 
 class InteractiveTkClient(Module):
     """An interactive Tk-based client for the chatbox."""
