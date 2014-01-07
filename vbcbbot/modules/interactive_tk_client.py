@@ -60,9 +60,8 @@ class ClientWindow:
     def message_received(self, message):
         self.append_message(message)
 
-    def __init__(self, connector, tk):
-        self.tk = tk
-        self.connector = connector
+    def run(self):
+        self.tk = tkinter.Tk()
 
         self.chat_text = tkinter.scrolledtext.ScrolledText(self.tk)
         self.chat_text.grid(row=0, sticky=tkinter.W+tkinter.E+tkinter.N+tkinter.S)
@@ -77,6 +76,12 @@ class ClientWindow:
         self.tk.grid_rowconfigure(1, weight=0)
         self.tk.grid_columnconfigure(0, weight=1)
 
+        self.tk.mainloop()
+
+    def __init__(self, connector):
+        self.connector = connector
+        self.tk = None
+
 
 class InteractiveTkClient(Module):
     """An interactive Tk-based client for the chatbox."""
@@ -84,9 +89,8 @@ class InteractiveTkClient(Module):
     def __init__(self, connector, config_section=None):
         Module.__init__(self, connector, config_section)
 
-        self.tk = tkinter.Tk()
-        self.client_window = ClientWindow(connector=connector, tk=self.tk)
-        self.windowing_thread = threading.Thread(None, self.tk.mainloop, "InteractiveTkClient")
+        self.client_window = ClientWindow(connector=connector)
+        self.windowing_thread = threading.Thread(None, self.client_window.run, "InteractiveTkClient")
 
     def start(self):
         self.windowing_thread.start()
