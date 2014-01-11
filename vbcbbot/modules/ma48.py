@@ -89,8 +89,7 @@ right_arrows_to_left_arrows = {
     "\u2b4c": "\u2b4b",
 }
 right_arrows_delimited_by_pipes = "|".join(right_arrows_to_left_arrows.keys())
-waste_bin_re = re.compile("^(.+)(" + right_arrows_delimited_by_pipes + ")" +
-                          "(.*[tT][oO][nN][nN][eE])$")
+waste_bin_re = re.compile("[tT][oO][nN][nN][eE]")
 
 
 class Ma48(Module):
@@ -111,18 +110,15 @@ class Ma48(Module):
         # unescape entities
         body = bs4.BeautifulSoup(body).text
 
-        match = waste_bin_re.match(body)
+        match = waste_bin_re.search(body)
         if match is not None:
-            what_to_throw = match.group(1)
-            arrow = match.group(2)
-            waste_bin = match.group(3)
-
-            if arrow not in right_arrows_to_left_arrows:
-                return
-
-            new_arrow = right_arrows_to_left_arrows[arrow]
-
-            response = what_to_throw + new_arrow + waste_bin
+            response = body
+            old_response = None
+            while response != old_response:
+                old_response = response
+                for (right, left) in right_arrows_to_left_arrows.items():
+                    response = response.replace(right, left)
+            # reached a fixed point
             self.connector.send_message(response)
 
     def __init__(self, connector, config_section):
