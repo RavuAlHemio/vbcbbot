@@ -2,22 +2,22 @@
 from bs4 import BeautifulSoup
 from time import sleep
 from urllib.parse import urlencode, urljoin
-from _utils import login_and_enter_arcade
+import _utils
 
 
 def fake(base_url, username, password, game_id, time, score):
-    url_opener = login_and_enter_arcade(base_url, username, password)
+    url_opener = _utils.login_and_enter_arcade(base_url, username, password)
 
     # calculate some more URLs
     play_game_url = urljoin(base_url, "arcade.php?do=play&gameid={0}".format(game_id))
     score_url = urljoin(base_url, "index.php?act=Arcade&do=newscore")
 
-    # play the game
+    # pretend to play the game
     print("playing the game")
     play_game_response = url_opener.open(play_game_url)
     soup = BeautifulSoup(play_game_response.read())
 
-    # find the game's name
+    # (meanwhile, find the game's name)
     game_flash = soup.find("embed", type="application/x-shockwave-flash")
     if game_flash is None:
         print("didn't find the flash plugin on the game page :'-(")
@@ -41,7 +41,7 @@ def fake(base_url, username, password, game_id, time, score):
         "gscore": score,
         "gname": game_name
     }
-    post_data = urlencode(post_values, encoding="utf-8").encode("us-ascii")
+    post_data = _utils.encode_post_data(post_values)
     print("submitting fake high score")
     score_response = url_opener.open(score_url, data=post_data)
     score_response.read()
@@ -53,8 +53,7 @@ if __name__ == '__main__':
     from getpass import getpass
 
     parser = ArgumentParser(description="Fake scores on an ibProArcade-for-vBulletin instance.")
-    parser.add_argument("-u", "--username", required=True, help="the username with which to log in")
-    parser.add_argument("-b", "--base-url", required=True, help="the base URL of the forum")
+    _utils.add_common_arguments_to_parser(parser)
     parser.add_argument("-s", "--score", type=int, required=True, help="the score to fake")
     parser.add_argument("-t", "--time", metavar="SECONDS", type=int, required=True,
                         help='the time how long the game should be "played"')

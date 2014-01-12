@@ -5,6 +5,10 @@ from urllib.request import build_opener, HTTPCookieProcessor
 __author__ = 'ondra'
 
 
+def encode_post_data(dictionary):
+    return urlencode(dictionary, encoding="utf-8").encode("us-ascii")
+
+
 def login_and_enter_arcade(base_url, username, password):
     # prepare a cookie-enabled URL opener
     cookie_jar = CookieJar()
@@ -24,7 +28,7 @@ def login_and_enter_arcade(base_url, username, password):
         "vb_login_md5password": "",
         "vb_login_md5password_utf": ""
     }
-    post_data = urlencode(post_values, encoding="utf-8").encode("us-ascii")
+    post_data = encode_post_data(post_values)
     print("logging in")
     login_response = url_opener.open(login_url, data=post_data)
     login_response.read()
@@ -36,3 +40,8 @@ def login_and_enter_arcade(base_url, username, password):
 
     # return the opener for further usage
     return url_opener
+
+
+def add_common_arguments_to_parser(parser):
+    parser.add_argument("-u", "--username", required=True, help="the username with which to log in")
+    parser.add_argument("-b", "--base-url", required=True, help="the base URL of the forum")
