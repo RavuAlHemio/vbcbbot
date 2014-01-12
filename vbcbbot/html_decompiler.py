@@ -118,6 +118,10 @@ class HtmlDecompiler:
                     # font color
                     ret.append(Element("color", self.decompile_soup(child), child['color']))
 
+                elif child.name == "span" and child.has_attr("style"):
+                    if child["style"] == "direction: rtl; unicode-bidi: bidi-override;":
+                        ret.append(Element("flip", self.decompile_soup(child)))
+
                 else:
                     logger.warning("skipping unknown HTML element {0}".format(child.name))
 
