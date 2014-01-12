@@ -14,11 +14,12 @@ special_right_arrows = "\u2192\u219d\u21a0\u21a3\u21a6\u21aa\u21ac\u21b1\u21b3\u
     "\u2945\u2953\u2957\u295b\u295f\u2964\u296c\u296d\u2971\u2972\u2974\u2975\u2978\u2b43" + \
     "\u2979\u2b44\u297c\u27a1\u2b0e\u2b0f\u2b46\u2b47\u2b48\u2b4c"
 
-arrow_pieces = set("-=~>")
+arrow_re_string = "((?:[-=~>]*[>{sra}]+[-=~>]*)+)".format(sra=special_right_arrows)
+arrow_re = re.compile(arrow_re_string)
 arrow_waste_bin_re = re.compile(
     "^" +  # beginning of the line
     "(.+?)" +  # what to throw out
-    "((?:[-=~>]*[>{sra}]+[-=~>]*)+)".format(sra=special_right_arrows) +  # arrows
+    arrow_re_string +  # arrows
     "(.*[tT][oO][nN][nN][eE].*)" +  # where to throw it out
     "$"  # end of the line
 )
@@ -32,6 +33,37 @@ class BinItem:
 
 class BinAdmin(Module):
     """Remembers "something -> somethingTonneSomething"."""
+
+    def message_received_on_new_connection(self, message):
+        body = message.body_soup().text.strip()
+
+        if body.startswith("!"):
+            # bot trigger; ignore
+            logger.debug("ignoring bot trigger " + repr(body[:16]))
+            return
+
+        match = arrow_waste_bin_re.match(body)
+        if match is not None:
+            # a waste bin toss has been found
+            what = match.group(1).strip()
+            arrow = match.group(2)
+            where = match.group(3).strip().lower()
+
+            if arrow_re.search(what) is not None or arrow_re.search(where) is not None:
+                # this might get recursive...
+                logger.debug("{0} is trying to trick us by throwing {1} into {2}".format(
+                    message.user_name, repr(what), repr(where))
+                )
+                return
+
+            logger.debug("{0} tossed {1} into {2} using {3}".format(message.user_name, repr(what),
+                                                                    repr(where), repr(arrow)))
+
+            if where not in self.bins_contents:
+                self.bins_contents[where] = []
+
+            # put!
+            self.bins_contents[where].append(BinItem(what, arrow, message.user_name))
 
     def message_received(self, message):
         """Called by the communicator when a new message has been received."""
@@ -87,25 +119,8 @@ class BinAdmin(Module):
             self.connector.send_message("Tonnen abgesammelt.")
             return
 
-        if body.startswith("!"):
-            # bot trigger; ignore
-            logger.debug("ignoring bot trigger " + repr(body[:16]))
-            return
-
-        match = arrow_waste_bin_re.match(body)
-        if match is not None:
-            # a waste bin toss has been found
-            what = match.group(1).strip()
-            arrow = match.group(2)
-            where = match.group(3).strip().lower()
-            logger.debug("{0} tossed {1} into {2} using {3}".format(message.user_name, repr(what),
-                                                                    repr(where), repr(arrow)))
-
-            if where not in self.bins_contents:
-                self.bins_contents[where] = []
-
-            # put!
-            self.bins_contents[where].append(BinItem(what, arrow, message.user_name))
+        # forward this
+        self.message_received_on_new_connection(message)
 
     def __init__(self, connector, config_section):
         """
