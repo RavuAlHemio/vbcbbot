@@ -75,7 +75,13 @@ class BinAdmin(Module):
 
         if body == "!tonnen":
             logger.debug("bin overview request from " + message.user_name)
-            msg = "Ich kenne folgende Tonnen: "
+            if len(self.bins_contents) == 0:
+                self.connector.send_message("Ich kenne keine Tonnen.")
+                return
+            elif len(self.bins_contents) == 1:
+                msg = "Ich kenne folgende Tonne: "
+            else:
+                msg = "Ich kenne folgende Tonnen: "
             msg += ", ".join([repr(waste_bin) for waste_bin in self.bins_contents])
             self.connector.send_message(msg)
             return
