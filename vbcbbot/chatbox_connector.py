@@ -91,8 +91,10 @@ class ChatboxConnector:
         self.message_id_piece = "misc.php?ccbloc="
         self.user_id_piece = "member.php?u="
         self.new_message_subscribers = set()
+        self.new_message_from_salvo_subscribers = set()
         self.message_modified_subscribers = set()
         self.old_message_ids_to_bodies = {}
+        self.initial_salvo = True
 
         # precompute the relevant URLs
         self.login_url = up.urljoin(self.base_url, "login.php?do=login")
@@ -331,11 +333,14 @@ class ChatboxConnector:
 
         # distribute the news and modifications
         for (is_edited, new_message) in new_and_edited_messages:
-            if is_edited:
+            if self.initial_salvo:
+                self.distribute_new_message_from_salvo(new_message)
+            elif is_edited:
                 self.distribute_modified_message(new_message)
             else:
                 self.distribute_new_message(new_message)
 
+        self.initial_salvo = False
         self.last_message_received = new_last_message
 
     def distribute_new_message(self, new_message):
@@ -345,6 +350,14 @@ class ChatboxConnector:
                 subscriber(new_message)
             except:
                 logger.exception("distribute_new_message: subscriber")
+
+    def distribute_new_message_from_salvo(self, new_message):
+        """Distributes a new message to the subscribers."""
+        for subscriber in self.new_message_from_salvo_subscribers:
+            try:
+                subscriber(new_message)
+            except:
+                logger.exception("distribute_new_message_from_salvo: subscriber")
 
     def distribute_modified_message(self, modified_message):
         """Distributes a modified message to the subscribers."""
@@ -369,6 +382,14 @@ class ChatboxConnector:
         updated message (a ChatboxMessage instance).
         """
         self.message_modified_subscribers.add(new_subscriber)
+
+    def subscribe_to_new_messages_from_salvo(self, new_subscriber):
+        """
+        Add a new subscriber to be notified when a new message from the initial salvo is received.
+        :param new_subscriber: A callable object with one positional argument that will receive the
+        new message (a ChatboxMessage instance).
+        """
+        self.new_message_from_salvo_subscribers.add(new_subscriber)
 
     def perform_reading(self):
         """

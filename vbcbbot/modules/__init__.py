@@ -20,6 +20,15 @@ class Module:
         """
         pass
 
+    def message_received_on_new_connection(self, new_message):
+        """
+        Act upon the reception of a new message that arrived as part of the "just connected" salvo.
+        Called by the communicator. Calls message_received by default.
+        :type new_message: ChatboxMessage
+        :param new_message: The new message object.
+        """
+        self.message_received(new_message)
+
     def __init__(self, connector, config_section=None):
         """
         Construct a new instance of the bot. Stores the connector and subscribes to the relevant
@@ -31,6 +40,7 @@ class Module:
         self.connector = connector
         self.connector.subscribe_to_new_messages(self.message_received)
         self.connector.subscribe_to_modified_messages(self.message_modified)
+        self.connector.subscribe_to_new_messages_from_salvo(self.message_received_on_new_connection)
 
     def start(self):
         """
