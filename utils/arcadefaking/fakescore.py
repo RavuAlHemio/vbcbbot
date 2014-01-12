@@ -1,41 +1,16 @@
 #!/usr/bin/env python3
 from bs4 import BeautifulSoup
-from http.cookiejar import CookieJar
 from time import sleep
-from urllib.request import build_opener, HTTPCookieProcessor
-from urllib.parse import urlencode, urljoin, unquote
+from urllib.parse import urlencode, urljoin
+from _utils import login_and_enter_arcade
 
 
 def fake(base_url, username, password, game_id, time, score):
-    # prepare a cookie-enabled URL opener
-    cookie_jar = CookieJar()
-    url_opener = build_opener(HTTPCookieProcessor(cookie_jar))
+    url_opener = login_and_enter_arcade(base_url, username, password)
 
-    # calculate some URLs
-    login_url = urljoin(base_url, "login.php?do=login")
-    arcade_url = urljoin(base_url, "arcade.php")
+    # calculate some more URLs
     play_game_url = urljoin(base_url, "arcade.php?do=play&gameid={0}".format(game_id))
     score_url = urljoin(base_url, "index.php?act=Arcade&do=newscore")
-
-    # log in
-    post_values = {
-        "vb_login_username": username,
-        "vb_login_password": password,
-        "cookieuser": "1",
-        "s": "",
-        "do": "login",
-        "vb_login_md5password": "",
-        "vb_login_md5password_utf": ""
-    }
-    post_data = urlencode(post_values, encoding="utf-8").encode("us-ascii")
-    print("logging in")
-    login_response = url_opener.open(login_url, data=post_data)
-    login_response.read()
-
-    # enter the arcade
-    print("entering the arcade")
-    arcade_response = url_opener.open(arcade_url)
-    arcade_response.read()
 
     # play the game
     print("playing the game")
