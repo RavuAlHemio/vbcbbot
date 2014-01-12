@@ -112,6 +112,17 @@ class Ma48(Module):
 
         match = waste_bin_re.search(body)
         if match is not None:
+            # a waste bin has been found
+            # make sure there is at least one arrow
+            have_arrow = False
+            for arrow in right_arrows_to_left_arrows.keys():
+                if arrow in body:
+                    have_arrow = True
+                    break
+            if not have_arrow:
+                # don't bother
+                return
+
             response = body
             old_response = None
             while response != old_response:
