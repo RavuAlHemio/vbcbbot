@@ -332,11 +332,6 @@ class ChatboxConnector:
             message_body = tds[1].decode_contents().strip()
             message = ChatboxMessage(message_id, user_id, nick, message_body, timestamp)
 
-            if self.stfu_command is not None and message_body == self.stfu_command:
-                # STFU
-                logger.info("{0} shut me up for {1} minutes".format(nick, self.stfu_delay))
-                self.stfu_start = time.time()
-
             if message_id in self.old_message_ids_to_bodies:
                 old_body = self.old_message_ids_to_bodies[message_id]
                 if old_body != message_body:
@@ -345,6 +340,11 @@ class ChatboxConnector:
             else:
                 self.old_message_ids_to_bodies[message_id] = message_body
                 new_and_edited_messages.insert(0, (False, message))
+
+                if self.stfu_command is not None and message_body == self.stfu_command:
+                    # STFU
+                    logger.info("{0} shut me up for {1} minutes".format(nick, self.stfu_delay))
+                    self.stfu_start = time.time()
 
         # cull the bodies of messages that aren't visible anymore
         for message_id in list(self.old_message_ids_to_bodies.keys()):
