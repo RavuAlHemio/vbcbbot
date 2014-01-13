@@ -341,7 +341,8 @@ class ChatboxConnector:
                 self.old_message_ids_to_bodies[message_id] = message_body
                 new_and_edited_messages.insert(0, (False, message))
 
-                if self.stfu_command is not None and message_body == self.stfu_command:
+                if not self.initial_salvo and self.stfu_command is not None and \
+                        message_body == self.stfu_command:
                     # STFU
                     logger.info("{0} shut me up for {1} minutes".format(nick, self.stfu_delay))
                     self.stfu_start = time.time()
