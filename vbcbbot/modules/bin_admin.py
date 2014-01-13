@@ -71,8 +71,6 @@ class BinAdmin(Module):
         # extract text and strip
         body = message.body_soup().text.strip()
 
-        logger.debug("body is " + repr(body))
-
         if body == "!tonnen":
             logger.debug("bin overview request from " + message.user_name)
             if len(self.bins_contents) == 0:
