@@ -29,8 +29,17 @@ def run():
         forum_username = section['username']
         forum_password = section['password']
 
+        stfu_command = None
+        stfu_delay = 30
+        if 'communication' in config:
+            comm_section = config['communication']
+            if 'stfu command' in comm_section:
+                stfu_command = comm_section['stfu command']
+            if 'stfu delay' in comm_section:
+                stfu_delay = int(comm_section['stfu delay'])
+
         # create the connector
-        conn = ChatboxConnector(forum_url, forum_username, forum_password)
+        conn = ChatboxConnector(forum_url, forum_username, forum_password, stfu_command)
 
         # load the modules
         loaded_modules = set()

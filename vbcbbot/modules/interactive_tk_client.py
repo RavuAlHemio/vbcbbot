@@ -43,7 +43,7 @@ def format_soup(soup):
 class ClientWindow:
     def enter_pressed(self, event):
         # send the message and clear the box
-        self.connector.send_message(self.chat_entry.get())
+        self.connector.send_message(self.chat_entry.get(), True)
         self.chat_entry.delete(0, tkinter.END)
 
     def append_message(self, message, sigil=""):

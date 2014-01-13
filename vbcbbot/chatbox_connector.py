@@ -73,28 +73,27 @@ class ChatboxMessage:
 class ChatboxConnector:
     """Facilitates communication with a vBulletin chatbox."""
 
-    def __init__(self, base_url, username, password):
+    def __init__(self, base_url, username, password, stfu_command=None, stfu_delay=30):
         """
         Connect to a vBulletin chatbox.
         :param base_url: The base URL of the chatbox, down to the subdirectory containing vBulletin.
         :param username: The forum username with which to log in.
-        :param password: The forum password with which to log in
+        :param password: The forum password with which to log in.
+        :param stfu_command: The command to silence outgoing communication.
+        :param stfu_delay: How long to shut up for, in minutes.
         :return: A new chatbox connector.
         """
         self.base_url = base_url
         self.username = username
         self.password = password
+        self.stfu_command = stfu_command
+        self.stfu_delay = stfu_delay
 
         # assume a good default for these
         self.server_encoding = "iso-8859-1"
         self.time_between_reads = 5
         self.message_id_piece = "misc.php?ccbloc="
         self.user_id_piece = "member.php?u="
-        self.new_message_subscribers = set()
-        self.new_message_from_salvo_subscribers = set()
-        self.message_modified_subscribers = set()
-        self.old_message_ids_to_bodies = {}
-        self.initial_salvo = True
 
         # precompute the relevant URLs
         self.login_url = up.urljoin(self.base_url, "login.php?do=login")
@@ -110,9 +109,15 @@ class ChatboxConnector:
                                                name="ChatboxConnector reading")
 
         # "declare" these variables for later
+        self.new_message_subscribers = set()
+        self.new_message_from_salvo_subscribers = set()
+        self.message_modified_subscribers = set()
+        self.old_message_ids_to_bodies = {}
+        self.initial_salvo = True
         self.security_token = None
         self.last_message_received = -1
         self.stop_reading = False
+        self.stfu_start = None
 
     def start(self):
         self.login()
@@ -210,12 +215,22 @@ class ChatboxConnector:
 
         func(*pos_args, retry=retry_count+1, **kw_args)
 
-    def send_message(self, message, retry=0):
+    def should_stfu(self):
+        if self.stfu_start is None:
+            return False
+        if time.time() < self.stfu_start + 60*self.stfu_delay:
+            return True
+        return False
+
+    def send_message(self, message, bypass_stfu=False, retry=0):
         """
         Send the given message to the server.
         :param message: The message to send.
         :param retry: Level of desperation to post the new message.
         """
+        if not bypass_stfu and self.should_stfu():
+            return
+
         logger.debug("posting message {0} (retry {1})".format(repr(message), retry))
         request_string = "do=cb_postnew&securitytoken={0}&vsacb_newmessage={1}".format(
             self.security_token, self.encode_outgoing_message(message)
@@ -229,7 +244,7 @@ class ChatboxConnector:
 
         if post_response.status != 200 or len(post_response_body) != 0:
             # something failed
-            self.retry(retry, self.send_message, message)
+            self.retry(retry, self.send_message, message, bypass_stfu)
 
     def edit_message(self, message_id, new_body):
         """
@@ -316,6 +331,11 @@ class ChatboxConnector:
 
             message_body = tds[1].decode_contents().strip()
             message = ChatboxMessage(message_id, user_id, nick, message_body, timestamp)
+
+            if self.stfu_command is not None and message_body == self.stfu_command:
+                # STFU
+                logger.info("{0} shut me up for {1} minutes".format(nick, self.stfu_delay))
+                self.stfu_start = time.time()
 
             if message_id in self.old_message_ids_to_bodies:
                 old_body = self.old_message_ids_to_bodies[message_id]
