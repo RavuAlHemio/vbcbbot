@@ -229,6 +229,7 @@ class ChatboxConnector:
         :param retry: Level of desperation to post the new message.
         """
         if not bypass_stfu and self.should_stfu():
+            logger.debug("I've been shut up; not posting message {0}".format(repr(message)))
             return
 
         logger.debug("posting message {0} (retry {1})".format(repr(message), retry))
