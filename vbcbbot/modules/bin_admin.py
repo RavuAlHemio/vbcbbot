@@ -180,7 +180,7 @@ class BinAdmin(Module):
         cursor = self.database.cursor()
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS bins (
-            bin TEXT
+            bin TEXT,
             PRIMARY KEY (bin)
         )
         """)
