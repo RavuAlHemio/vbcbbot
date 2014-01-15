@@ -35,7 +35,7 @@ class BinAdmin(Module):
     """Remembers "something -> somethingTonneSomething"."""
 
     def message_received_on_new_connection(self, message):
-        body = message.body_soup().text.strip()
+        body = message.decompiled_body()
 
         if body.startswith("!"):
             # bot trigger; ignore
