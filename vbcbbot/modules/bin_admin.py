@@ -1,8 +1,9 @@
 from vbcbbot.modules import Module
 
-import bs4
 import logging
 import re
+import sqlite3
+import time
 
 __author__ = 'ondra'
 
@@ -57,14 +58,28 @@ class BinAdmin(Module):
                 )
                 return
 
+            timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+
             logger.debug("{0} tossed {1} into {2} using {3}".format(message.user_name, repr(what),
                                                                     repr(where), repr(arrow)))
 
-            if where not in self.bins_contents:
-                self.bins_contents[where] = []
-
             # put!
-            self.bins_contents[where].append(BinItem(what, arrow, message.user_name))
+            cur = self.database.cursor()
+            cur.execute("INSERT OR IGNORE INTO bins (bin) VALUES (?)", (where,))
+            cur.execute(
+                """
+                INSERT OR IGNORE INTO bin_items (bin, item, arrow, thrower, timestamp)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (where, what, arrow, message.user_name, timestamp)
+            )
+            self.database.commit()
+
+    def bin_exists(self, bin_name):
+        cur = self.database.cursor()
+        cur.execute("SELECT bin FROM bins WHERE bin=?", (bin_name,))
+        bin_row = cur.fetchone()
+        return bin_row is not None
 
     def message_received(self, message):
         """Called by the communicator when a new message has been received."""
@@ -74,14 +89,21 @@ class BinAdmin(Module):
 
         if body == "!tonnen":
             logger.debug("bin overview request from " + message.user_name)
-            if len(self.bins_contents) == 0:
+
+            cur = self.database.cursor()
+            cur.execute("SELECT bin FROM bins")
+            bins = set()
+            for bin_row in cur:
+                bins.add(bin_row[0])
+
+            if len(bins) == 0:
                 self.connector.send_message("Ich kenne keine Tonnen.")
                 return
-            elif len(self.bins_contents) == 1:
+            elif len(bins) == 1:
                 msg = "Ich kenne folgende Tonne: "
             else:
                 msg = "Ich kenne folgende Tonnen: "
-            msg += ", ".join([repr(waste_bin) for waste_bin in self.bins_contents])
+            msg += ", ".join([repr(waste_bin) for waste_bin in bins])
             self.connector.send_message(msg)
             return
 
@@ -90,37 +112,48 @@ class BinAdmin(Module):
             waste_bin_name = body[len("!tonneninhalt "):].strip().lower()
             logger.debug("requesting contents of " + repr(waste_bin_name))
 
-            if waste_bin_name in self.bins_contents:
-                this_bin_contents = self.bins_contents[waste_bin_name]
-                if len(this_bin_contents) == 0:
-                    self.connector.send_message("In dieser Tonne befindet sich nichts.")
-                    return
-                elif len(this_bin_contents) == 1:
-                    msg = "In dieser Tonne befindet sich: "
-                else:
-                    msg = "In dieser Tonne befinden sich: "
-                msg += ", ".join([item.item for item in this_bin_contents])
-                self.connector.send_message(msg)
-                return
-            else:
+            if not self.bin_exists(waste_bin_name):
                 self.connector.send_message("Diese Tonne kenne ich nicht.")
                 return
+
+            cur = self.database.cursor()
+            cur.execute("SELECT item FROM bin_items WHERE bin=?", (waste_bin_name,))
+            items = set()
+            for item_row in cur:
+                items.add(item_row[0])
+
+            if len(items) == 0:
+                self.connector.send_message("In dieser Tonne befindet sich nichts.")
+                return
+            elif len(items) == 1:
+                msg = "In dieser Tonne befindet sich: "
+            else:
+                msg = "In dieser Tonne befinden sich: "
+            msg += ", ".join(items)
+            self.connector.send_message(msg)
+            return
 
         elif body.startswith("!entleere "):
             logger.debug("bin emptying request from " + message.user_name)
             waste_bin_name = body[len("!entleere "):].strip().lower()
             logger.debug("requesting emptying of " + repr(waste_bin_name))
-            if waste_bin_name in self.bins_contents:
-                self.bins_contents[waste_bin_name].clear()
-                self.connector.send_message("Tonne entleert.")
-                return
-            else:
+
+            if not self.bin_exists(waste_bin_name):
                 self.connector.send_message("Diese Tonne kenne ich nicht.")
                 return
 
+            cur = self.database.cursor()
+            cur.execute("DELETE FROM bin_items WHERE bin=?", (waste_bin_name,))
+
+            self.connector.send_message("Tonne entleert.")
+
         elif body == "!m\u00fcllsammlung":
             logger.debug("bin removal request from " + message.user_name)
-            self.bins_contents.clear()
+
+            cur = self.database.cursor()
+            cur.execute("DELETE FROM bin_items")
+            cur.execute("DELETE FROM bins")
+
             self.connector.send_message("Tonnen abgesammelt.")
             return
 
@@ -138,4 +171,27 @@ class BinAdmin(Module):
         if config_section is None:
             config_section = {}
 
-        self.bins_contents = {}
+        self.database = None
+        if "database" in config_section:
+            self.database = sqlite3.connect(config_section["database"])
+        else:
+            self.database = sqlite3.connect(":memory:")
+
+        cursor = self.database.cursor()
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS bins (
+            bin TEXT
+            PRIMARY KEY (bin)
+        )
+        """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS bin_items (
+            bin TEXT REFERENCES bins (bin),
+            item TEXT,
+            arrow TEXT,
+            thrower TEXT,
+            timestamp TEXT,
+            PRIMARY KEY (bin, item)
+        )
+        """)
+        self.database.commit()
