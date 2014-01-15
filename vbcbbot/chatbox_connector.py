@@ -39,7 +39,7 @@ class TransferError(Exception):
 
 class ChatboxMessage:
     """A message posted into the chatbox."""
-    def __init__(self, message_id, user_id, user_name, body, timestamp=None):
+    def __init__(self, message_id, user_id, user_name, body, timestamp=None, html_decompiler=None):
         """
         Initialize a new message.
         :param message_id: The ID of the message.
@@ -56,6 +56,10 @@ class ChatboxMessage:
         if timestamp is None:
             timestamp = time.time()
         self.timestamp = timestamp
+        if html_decompiler is None:
+            self.html_decompiler = HtmlDecompiler()
+        else:
+            self.html_decompiler = html_decompiler
 
     def body_io(self):
         """
@@ -76,14 +80,14 @@ class ChatboxMessage:
         Return the body of the message decompiled using HtmlDecompiler.
         :return: The body of the message decompiled using HtmlDecompiler.
         """
-        decompiler = HtmlDecompiler()
-        return "".join([str(e) for e in decompiler.decompile_soup(self.body_soup())])
+        return "".join([str(e) for e in self.html_decompiler.decompile_soup(self.body_soup())])
 
 
 class ChatboxConnector:
     """Facilitates communication with a vBulletin chatbox."""
 
-    def __init__(self, base_url, username, password, stfu_command=None, stfu_delay=30):
+    def __init__(self, base_url, username, password, stfu_command=None, stfu_delay=30,
+                 html_decompiler=None):
         """
         Connect to a vBulletin chatbox.
         :param base_url: The base URL of the chatbox, down to the subdirectory containing vBulletin.
@@ -91,6 +95,7 @@ class ChatboxConnector:
         :param password: The forum password with which to log in.
         :param stfu_command: The command to silence outgoing communication.
         :param stfu_delay: How long to shut up for, in minutes.
+        :param html_decompiler: A correctly configured HTML decompiler, or None.
         :return: A new chatbox connector.
         """
         self.base_url = base_url
@@ -98,6 +103,7 @@ class ChatboxConnector:
         self.password = password
         self.stfu_command = stfu_command
         self.stfu_delay = stfu_delay
+        self.html_decompiler = html_decompiler
 
         # assume a good default for these
         self.server_encoding = "iso-8859-1"
@@ -341,7 +347,8 @@ class ChatboxConnector:
                 continue
 
             message_body = tds[1].decode_contents().strip()
-            message = ChatboxMessage(message_id, user_id, nick, message_body, timestamp)
+            message = ChatboxMessage(message_id, user_id, nick, message_body, timestamp,
+                                     self.html_decompiler)
 
             if message_id in self.old_message_ids_to_bodies:
                 old_body = self.old_message_ids_to_bodies[message_id]
