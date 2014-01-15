@@ -52,7 +52,7 @@ def run():
                     urls_to_smileys[parts[0]] = parts[1]
             if 'tex prefix' in hd_section:
                 tex_prefix = hd_section['tex prefix']
-            html_decompiler = HtmlDecompiler(urls_to_smilies, tex_prefix)
+            html_decompiler = HtmlDecompiler(urls_to_smileys, tex_prefix)
 
         # create the connector
         conn = ChatboxConnector(forum_url, forum_username, forum_password, stfu_command,
