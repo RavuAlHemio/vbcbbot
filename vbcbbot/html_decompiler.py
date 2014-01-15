@@ -31,7 +31,7 @@ class Element(Node):
             av = ""
 
         return "[{n}{av}]{c}[/{n}]".format(
-            n=self.name, av=av, c="".join(self.children)
+            n=self.name, av=av, c="".join([str(child) for child in self.children])
         )
 
     def __repr__(self):
