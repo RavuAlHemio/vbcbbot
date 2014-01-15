@@ -77,7 +77,7 @@ class ChatboxMessage:
         :return: The body of the message decompiled using HtmlDecompiler.
         """
         decompiler = HtmlDecompiler()
-        return "".join(decompiler.decompile_soup(self.body_soup()))
+        return "".join([str(e) for e in decompiler.decompile_soup(self.body_soup())])
 
 
 class ChatboxConnector:
