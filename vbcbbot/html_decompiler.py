@@ -12,7 +12,7 @@ class Node:
 
     @staticmethod
     def is_text():
-        return True
+        return False
 
     def has_children(self):
         return self.is_element()
@@ -48,6 +48,8 @@ class Text(Node):
         self.text = text
 
     def __str__(self):
+        if "[" in self.text:
+            return "[noparse]" + self.text + "[/noparse]"
         return self.text
 
     def __repr__(self):
