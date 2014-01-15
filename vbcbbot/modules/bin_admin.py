@@ -173,9 +173,9 @@ class BinAdmin(Module):
 
         self.database = None
         if "database" in config_section:
-            self.database = sqlite3.connect(config_section["database"])
+            self.database = sqlite3.connect(config_section["database"], check_same_thread=False)
         else:
-            self.database = sqlite3.connect(":memory:")
+            self.database = sqlite3.connect(":memory:", check_same_thread=False)
 
         cursor = self.database.cursor()
         cursor.execute("""
