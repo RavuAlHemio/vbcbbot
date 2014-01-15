@@ -1,3 +1,5 @@
+from vbcbbot.html_decompiler import HtmlDecompiler
+
 import bs4
 import http.cookiejar as cj
 import io
@@ -68,6 +70,14 @@ class ChatboxMessage:
         :return: A new BeautifulSoup instance for the body of the message.
         """
         return bs4.BeautifulSoup(self.body_io(), "html.parser")
+
+    def decompiled_body(self):
+        """
+        Return the body of the message decompiled using HtmlDecompiler.
+        :return: The body of the message decompiled using HtmlDecompiler.
+        """
+        decompiler = HtmlDecompiler()
+        return "".join(decompiler.decompile_soup(self.body_soup()))
 
 
 class ChatboxConnector:
