@@ -7,6 +7,7 @@ import logging
 import re
 import threading
 import time
+import unicodedata
 import urllib.parse as up
 import urllib.request as ur
 
@@ -30,6 +31,31 @@ def fish_out_id(element, url_piece):
         if piece_index >= 0:
             return int(href[(piece_index + len(url_piece)):])
     return None
+
+
+def filter_combining_mark_clusters(string, maximum_marks=4):
+    """
+    Reduces the number of combining marks on a single character to a specific value.
+    :param string: The string to filter.
+    :param maximum_marks: Maximum number of combining marks on a character.
+    :return: The filtered string.
+    """
+    ret = ""
+    mark_count = 0
+    for c in string:
+        if unicodedata.category(c) == 'Mn':
+            # non-spacing mark
+            mark_count += 1
+            if mark_count <= maximum_marks:
+                ret += c
+        elif unicodedata.category(c) == 'Cf':
+            # these characters don't have a width
+            # add them, but don't reset the mark counter
+            ret += c
+        else:
+            mark_count = 0
+            ret += c
+    return ret
 
 
 class TransferError(Exception):
@@ -238,7 +264,7 @@ class ChatboxConnector:
             return True
         return False
 
-    def send_message(self, message, bypass_stfu=False, retry=0):
+    def send_message(self, message, bypass_stfu=False, bypass_filters=False, retry=0):
         """
         Send the given message to the server.
         :param message: The message to send.
@@ -247,6 +273,9 @@ class ChatboxConnector:
         if not bypass_stfu and self.should_stfu():
             logger.debug("I've been shut up; not posting message {0}".format(repr(message)))
             return
+
+        if not bypass_filters:
+            message = filter_combining_mark_clusters(message)
 
         logger.debug("posting message {0} (retry {1})".format(repr(message), retry))
         request_string = "do=cb_postnew&securitytoken={0}&vsacb_newmessage={1}".format(
@@ -261,7 +290,7 @@ class ChatboxConnector:
 
         if post_response.status != 200 or len(post_response_body) != 0:
             # something failed
-            self.retry(retry, self.send_message, message, bypass_stfu)
+            self.retry(retry, self.send_message, message, bypass_stfu, bypass_filters)
 
     def edit_message(self, message_id, new_body):
         """

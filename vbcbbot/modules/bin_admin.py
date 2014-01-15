@@ -31,6 +31,7 @@ class BinItem:
         self.arrow = arrow
         self.thrower = thrower
 
+
 class BinAdmin(Module):
     """Remembers "something -> somethingTonneSomething"."""
 
