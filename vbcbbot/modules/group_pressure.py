@@ -19,19 +19,23 @@ class GroupPressure(Module):
         message_senders = {}
         for (sender, message) in self.backlog:
             if sender == self.connector.username:
-                # this is my message -- remove the senders
+                # this is my message -- start counting from zero, so to speak
                 message_senders[message] = set()
             elif message not in message_senders:
                 # one occurrence
                 message_senders[message] = {sender}
             else:
-                # add this to the set of senders
+                # add this message's sender to the set of senders
+                # (ignores dupes)
                 message_senders[message].add(sender)
 
         for (message, senders) in message_senders.items():
             if len(senders) >= self.trigger_count:
                 # submit to group pressure
                 self.connector.send_message(message)
+
+                # fake this message into the backlog to prevent duplicates
+                self.backlog.append((self.connector.username, message))
 
     def __init__(self, connector, config_section):
         Module.__init__(self, connector, config_section)
