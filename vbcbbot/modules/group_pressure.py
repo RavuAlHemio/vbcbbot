@@ -11,11 +11,19 @@ class GroupPressure(Module):
     on the fray!
     """
 
-    def message_received(self, new_message):
+    def message_received_on_new_connection(self, new_message):
         # insert into backlog, cleaning out old messages
         while len(self.backlog) >= self.backlog_size:
             self.backlog.pop(0)
-        self.backlog.append((new_message.user_name, new_message.body_soup().text))
+        body = new_message.body_soup().text
+        if len(body) == 0:
+            # nope
+            return
+        self.backlog.append((new_message.user_name, body))
+
+    def message_received(self, new_message):
+        # same for the initial salvo as for subsequent messages
+        self.message_received_on_new_connection(new_message)
 
         # perform accounting
         message_senders = {}
@@ -31,6 +39,7 @@ class GroupPressure(Module):
                 # (ignores dupes)
                 message_senders[message].add(sender)
 
+        # find some group pressure to bow to
         for (message, senders) in message_senders.items():
             if len(senders) >= self.trigger_count:
                 logger.debug("bowing to the group pressure of {0} sending {1}".format(
