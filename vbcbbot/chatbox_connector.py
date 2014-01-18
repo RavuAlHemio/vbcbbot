@@ -8,6 +8,7 @@ import re
 import threading
 import time
 import unicodedata
+import urllib.error as ue
 import urllib.parse as up
 import urllib.request as ur
 
@@ -285,7 +286,12 @@ class ChatboxConnector:
 
         # send!
         with self.cookie_jar_lid:
-            post_response = self.url_opener.open(self.post_edit_url, data=request_bytes)
+            try:
+                post_response = self.url_opener.open(self.post_edit_url, data=request_bytes)
+            except ue.URLError:
+                logger.exception("sending message")
+                # don't send the message -- fixing this might take longer
+                return
             post_response_body = post_response.read()
 
         if post_response.status != 200 or len(post_response_body) != 0:
@@ -315,7 +321,12 @@ class ChatboxConnector:
         Fetches new messages from the chatbox.
         :param retry: Level of desperation fetching the new messages.
         """
-        messages_response = self.url_opener.open(self.messages_url)
+        try:
+            messages_response = self.url_opener.open(self.messages_url)
+        except ue.URLError:
+            logger.exception("fetching new messages failed")
+            # try again next time
+            return
         messages_string = messages_response.read().decode(self.server_encoding)
         messages_soup = bs4.BeautifulSoup(io.StringIO(messages_string), "html.parser")
 
