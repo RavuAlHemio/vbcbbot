@@ -1,6 +1,8 @@
 from vbcbbot.modules import Module
+import logging
 
 __author__ = 'ondra'
+logger = logging.getLogger("vbcbbot.modules.group_pressure")
 
 
 class GroupPressure(Module):
@@ -31,6 +33,9 @@ class GroupPressure(Module):
 
         for (message, senders) in message_senders.items():
             if len(senders) >= self.trigger_count:
+                logger.debug("bowing to the group pressure of {0} sending {1}".format(
+                    repr(senders), repr(message)
+                ))
                 # submit to group pressure
                 self.connector.send_message(message)
 
