@@ -15,7 +15,7 @@ class GroupPressure(Module):
         # insert into backlog, cleaning out old messages
         while len(self.backlog) >= self.backlog_size:
             self.backlog.pop(0)
-        body = new_message.body_soup().text
+        body = new_message.body_soup().text.strip()
         if len(body) == 0:
             # nope
             return
