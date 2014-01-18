@@ -6,7 +6,7 @@ import re
 
 __author__ = 'ondra'
 
-logger = logging.getLogger("vbcbbot.ma48")
+logger = logging.getLogger("vbcbbot.modules.ma48")
 right_arrows_to_left_arrows = {
     "->": "<-",
     "=>": "<=",

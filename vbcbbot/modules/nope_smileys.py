@@ -7,7 +7,7 @@ import time
 
 __author__ = 'ondra'
 
-logger = logging.getLogger("vbcbbot.nope_smileys")
+logger = logging.getLogger("vbcbbot.modules.nope_smileys")
 
 
 class NopeSmileys(Module):

@@ -4,7 +4,7 @@ import logging
 
 __author__ = 'ondra'
 
-logger = logging.getLogger("vbcbbot.grinselink")
+logger = logging.getLogger("vbcbbot.modules.grinselink")
 remember_this_many_posts = 30
 
 
