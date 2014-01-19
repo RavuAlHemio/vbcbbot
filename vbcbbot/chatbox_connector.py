@@ -161,6 +161,7 @@ class ChatboxConnector:
         self.last_message_received = -1
         self.stop_reading = False
         self.stfu_start = None
+        """:type: int|None"""
 
     def start(self):
         self.login()
@@ -400,7 +401,7 @@ class ChatboxConnector:
                 new_and_edited_messages.insert(0, (False, message))
 
                 if not self.initial_salvo and self.stfu_command is not None and \
-                        message_body == self.stfu_command:
+                        message.user_name != self.username and message_body == self.stfu_command:
                     # STFU
                     logger.info("{0} shut me up for {1} minutes".format(nick, self.stfu_delay))
                     self.stfu_start = time.time()
