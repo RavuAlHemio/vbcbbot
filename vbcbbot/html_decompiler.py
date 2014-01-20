@@ -1,4 +1,5 @@
 import logging
+import re
 
 __author__ = 'ondra'
 
@@ -48,8 +49,6 @@ class Text(Node):
         self.text = text
 
     def __str__(self):
-        if "[" in self.text:
-            return "[noparse]" + self.text + "[/noparse]"
         return self.text
 
     def __repr__(self):
@@ -60,6 +59,26 @@ class Text(Node):
         return True
 
 
+def intercalate_text_and_matches_as_element(regex, string, element_tag="noparse"):
+    ret = []
+    last_unmatched_start_index = 0
+
+    for match in regex.finditer(string):
+        last_unmatched_string = string[last_unmatched_start_index:match.start()]
+        if len(last_unmatched_string) > 0:
+            ret.append(Text(last_unmatched_string))
+
+        ret.append(Element(element_tag, [Text(match.group())]))
+
+        last_unmatched_start_index = match.end()
+
+    last_unmatched_string = string[last_unmatched_start_index:]
+    if len(last_unmatched_string) > 0:
+        ret.append(Text(last_unmatched_string))
+
+    return ret
+
+
 class HtmlDecompiler:
     """Decompiles HTML into the Chatbox DOM."""
     def __init__(self, smiley_url_to_symbol=None, tex_prefix=None):
@@ -67,6 +86,11 @@ class HtmlDecompiler:
             smiley_url_to_symbol = {}
         self.smiley_url_to_symbol = smiley_url_to_symbol
         self.tex_prefix = tex_prefix
+
+        regex_for_noparse_string = "\\[+"
+        for smiley_string in sorted(smiley_url_to_symbol.values(), key=len, reverse=True):
+            regex_for_noparse_string += "|" + re.escape(smiley_string)
+        self.regex_for_noparse = re.compile(regex_for_noparse_string)
 
     @staticmethod
     def from_configuration(section):
@@ -129,7 +153,11 @@ class HtmlDecompiler:
 
             else:
                 # it's a string
-                ret.append(Text(child))
+                # put evil stuff (opening brackets and smiley triggers) into noparse tags
+                escaped_children = intercalate_text_and_matches_as_element(
+                    self.regex_for_noparse, child, "noparse"
+                )
+                ret += escaped_children
 
         return ret
 
@@ -145,7 +173,8 @@ if __name__ == '__main__':
         '<img src="pics/nb/smilies/smile.gif" /> und das hier ist ein Icon: ' +
         '<a href="http://www.informatik-forum.at/images/smilies/_fluffy__by_cindre.gif">' +
         '<img style="max-height: 50px" ' +
-        'src="http://www.informatik-forum.at/images/smilies/_fluffy__by_cindre.gif" /></a>',
+        'src="http://www.informatik-forum.at/images/smilies/_fluffy__by_cindre.gif" /></a> und ' +
+        'das hier ist ein escapter Smiley :) cool oder?',
         "html.parser"
     ))
     print(dom)
