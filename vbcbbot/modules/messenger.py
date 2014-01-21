@@ -29,20 +29,23 @@ class Messenger(Module):
             nickname = body[len("!msg "):colon_index].strip()
             send_body = body[colon_index+1:].strip()
 
-            logger.debug("{0} sending message {1} to {2}".format(
-                repr(message.user_name), repr(send_body), repr(nickname)
-            ))
+            if nickname == self.connector.username:
+                self.connector.send_message("Sorry, I don't deliver to myself!")
+            else:
+                logger.debug("{0} sending message {1} to {2}".format(
+                    repr(message.user_name), repr(send_body), repr(nickname)
+                ))
 
-            cursor = self.database.cursor()
-            cursor.execute(
-                "INSERT INTO messages (timestamp, sender, recipient, body) VALUES (?, ?, ?, ?)",
-                (message.timestamp, message.user_name, nickname, send_body)
-            )
-            self.database.commit()
+                cursor = self.database.cursor()
+                cursor.execute(
+                    "INSERT INTO messages (timestamp, sender, recipient, body) VALUES (?, ?, ?, ?)",
+                    (message.timestamp, message.user_name, nickname, send_body)
+                )
+                self.database.commit()
 
-            sent_template = "Aye-aye! I\u2019ll deliver your message to " + \
-                "[i][noparse]{0}[/noparse][/i] next time I see \u2019em!"
-            self.connector.send_message(sent_template.format(nickname))
+                sent_template = "Aye-aye! I\u2019ll deliver your message to " + \
+                    "[i][noparse]{0}[/noparse][/i] next time I see \u2019em!"
+                self.connector.send_message(sent_template.format(nickname))
 
         if self.connector.should_stfu():
             # don't bother just yet
