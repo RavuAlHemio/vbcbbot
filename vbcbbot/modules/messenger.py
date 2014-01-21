@@ -29,6 +29,10 @@ class Messenger(Module):
             nickname = body[len("!msg "):colon_index].strip()
             send_body = body[colon_index+1:].strip()
 
+            logger.debug("{0} sending message {1} to {2}".format(
+                repr(message.user_name), repr(send_body), repr(nickname)
+            ))
+
             cursor = self.database.cursor()
             cursor.execute(
                 "INSERT INTO messages (timestamp, sender, recipient, body) VALUES (?, ?, ?, ?)",
@@ -62,6 +66,9 @@ class Messenger(Module):
         elif len(messages) == 1:
             # one message
             (the_timestamp, the_sender, the_body) = messages[0]
+            logger.debug("delivering {0}'s message {1} to {2}".format(
+                repr(the_sender), repr(the_body), repr(message.user_name)
+            ))
             self.connector.send_message(
                 "Message for [noparse]{0}[/noparse]! [{1}] <[noparse]{2}[/noparse]> {3}".format(
                     message.user_name,
@@ -76,6 +83,9 @@ class Messenger(Module):
                 len(messages), message.user_name
             ))
             for (the_timestamp, the_sender, the_body) in messages:
+                logger.debug("delivering {0}'s message {1} to {2} as part of a chunk".format(
+                    repr(the_sender), repr(the_body), repr(message.user_name)
+                ))
                 self.connector.send_message("[{0}] <[noparse]{1}[/noparse]> {2}".format(
                     time.strftime("%Y-%m-%d %H:%M", time.localtime(the_timestamp)),
                     the_sender,
