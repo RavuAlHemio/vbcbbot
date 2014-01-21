@@ -7,7 +7,7 @@ import time
 
 __author__ = 'ondra'
 
-logger = logging.getLogger("vbcbbot.modules.ma48")
+logger = logging.getLogger("vbcbbot.modules.bin_admin")
 special_right_arrows = "\u2192\u219d\u21a0\u21a3\u21a6\u21aa\u21ac\u21b1\u21b3\u21b7\u21c0" + \
     "\u21c1\u21c9\u21d2\u21db\u21dd\u21e2\u21e5\u21e8\u21f4\u21f6\u21f8\u21fb\u21fe\u27f4" + \
     "\u27f6\u27f9\u27fc\u27fe\u27ff\u2900\u2901\u2903\u2905\u2907\u290d\u290f\u2910\u2911" + \
