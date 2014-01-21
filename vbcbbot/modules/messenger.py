@@ -43,9 +43,15 @@ class Messenger(Module):
                 )
                 self.database.commit()
 
-                sent_template = "Aye-aye! I\u2019ll deliver your message to " + \
-                    "[i][noparse]{0}[/noparse][/i] next time I see \u2019em!"
-                self.connector.send_message(sent_template.format(nickname))
+                if nickname == message.user_name:
+                    self.connector.send_message(
+                        "Talking to ourselves? Well, no skin off my back. I\u2019ll deliver your "
+                        "message to you right away. ;)"
+                    )
+                else:
+                    sent_template = "Aye-aye! I\u2019ll deliver your message to " + \
+                        "[i][noparse]{0}[/noparse][/i] next time I see \u2019em!"
+                    self.connector.send_message(sent_template.format(nickname))
 
         if self.connector.should_stfu():
             # don't bother just yet
