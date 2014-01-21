@@ -95,6 +95,8 @@ class Messenger(Module):
         # delete those messages
         cursor = self.database.cursor()
         cursor.execute("DELETE FROM messages WHERE recipient=?", (message.user_name,))
+        self.database.commit()
+        cursor.close()
 
     def __init__(self, connector, config_section):
         """
