@@ -32,26 +32,45 @@ class Messenger(Module):
             if nickname == self.connector.username:
                 self.connector.send_message("Sorry, I don't deliver to myself!")
             else:
-                logger.debug("{0} sending message {1} to {2}".format(
-                    repr(message.user_name), repr(send_body), repr(nickname)
-                ))
+                send_it = True
 
-                cursor = self.database.cursor()
-                cursor.execute(
-                    "INSERT INTO messages (timestamp, sender, recipient, body) VALUES (?, ?, ?, ?)",
-                    (message.timestamp, message.user_name, nickname, send_body)
-                )
-                self.database.commit()
+                if nickname not in self.known_usernames and len(nickname) > 3:
+                    # ask AJAX first
+                    send_it = False
+                    result_soup = self.connector.ajax("usersearch", {"fragment": nickname})
+                    for username in result_soup.users.find_all("user"):
+                        if nickname == username:
+                            send_it = True
+                            break
+                    if not send_it:
+                        self.connector.send_message(
+                            "Sorry, I don't know anyone named {0}.".format(nickname)
+                        )
+                    else:
+                        self.known_usernames.add(nickname)
 
-                if nickname == message.user_name:
-                    self.connector.send_message(
-                        "Talking to ourselves? Well, no skin off my back. I\u2019ll deliver your "
-                        "message to you right away. ;)"
+                if send_it:
+                    logger.debug("{0} sending message {1} to {2}".format(
+                        repr(message.user_name), repr(send_body), repr(nickname)
+                    ))
+
+                    cursor = self.database.cursor()
+                    cursor.execute(
+                        "INSERT INTO messages (timestamp, sender, recipient, body) "
+                        "VALUES (?, ?, ?, ?)",
+                        (message.timestamp, message.user_name, nickname, send_body)
                     )
-                else:
-                    sent_template = "Aye-aye! I\u2019ll deliver your message to " + \
-                        "[i][noparse]{0}[/noparse][/i] next time I see \u2019em!"
-                    self.connector.send_message(sent_template.format(nickname))
+                    self.database.commit()
+
+                    if nickname == message.user_name:
+                        self.connector.send_message(
+                            "Talking to ourselves? Well, no skin off my back. I\u2019ll deliver "
+                            "your message to you right away. ;)"
+                        )
+                    else:
+                        sent_template = "Aye-aye! I\u2019ll deliver your message to " + \
+                            "[i][noparse]{0}[/noparse][/i] next time I see \u2019em!"
+                        self.connector.send_message(sent_template.format(nickname))
 
         if self.connector.should_stfu():
             # don't bother just yet
@@ -117,6 +136,8 @@ class Messenger(Module):
 
         if config_section is None:
             config_section = {}
+
+        self.known_usernames = set()
 
         self.database = None
         if "database" in config_section:
