@@ -143,6 +143,7 @@ class ChatboxConnector:
         self.cheap_page_url = up.urljoin(self.base_url, "faq.php")
         self.post_edit_url = up.urljoin(self.base_url, "misc.php")
         self.messages_url = up.urljoin(self.base_url, "misc.php?show=ccbmessages")
+        self.ajax_url = up.urljoin(self.base_url, "ajax.php")
 
         # prepare the cookie jar, its lock, and the URL opener
         self.cookie_jar = cj.CookieJar()
@@ -265,6 +266,30 @@ class ChatboxConnector:
         if time.time() < self.stfu_start + 60*self.stfu_delay:
             return True
         return False
+
+    def ajax(self, operation, parameters=None):
+        """
+        Perform an AJAX request.
+        :param operation: The name of the operation to perform.
+        :type operation: str
+        :param parameters: The parameters to supply.
+        :type parameters: dict[str, str]
+        :return: The result soup.
+        :rtype: bs4.BeautifulSoup
+        """
+        post_values = {
+            "securitytoken": self.security_token,
+            "do": operation,
+        }
+        if parameters is not None:
+            post_values.update(parameters)
+        post_data = up.urlencode(post_values, encoding="utf-8").encode("us-ascii")
+
+        with self.cookie_jar_lid:
+            response = self.url_opener.open(self.ajax_url, data=post_data)
+            ajax_bytes = response.read()
+
+        return bs4.BeautifulSoup(ajax_bytes, "xml")
 
     def send_message(self, message, bypass_stfu=False, bypass_filters=False, retry=0):
         """
