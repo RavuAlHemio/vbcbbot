@@ -39,7 +39,7 @@ class Messenger(Module):
                     send_it = False
                     result_soup = self.connector.ajax("usersearch", {"fragment": nickname})
                     for username in result_soup.users.find_all("user"):
-                        if nickname == username:
+                        if nickname == username.text:
                             send_it = True
                             break
                     if not send_it:
