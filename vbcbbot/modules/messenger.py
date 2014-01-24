@@ -1,3 +1,4 @@
+from vbcbbot import chatbox_connector
 from vbcbbot.modules import Module
 
 import logging
@@ -37,17 +38,21 @@ class Messenger(Module):
                 if nickname not in self.known_usernames and len(nickname) > 3:
                     # ask AJAX first
                     send_it = False
-                    result_soup = self.connector.ajax("usersearch", {"fragment": nickname})
-                    for username in result_soup.users.find_all("user"):
-                        if nickname == username.text:
-                            send_it = True
-                            break
-                    if not send_it:
-                        self.connector.send_message(
-                            "Sorry, I don't know anyone named {0}.".format(nickname)
-                        )
-                    else:
-                        self.known_usernames.add(nickname)
+                    try:
+                        result_soup = self.connector.ajax("usersearch", {"fragment": nickname})
+                        for username in result_soup.users.find_all("user"):
+                            if nickname == username.text:
+                                send_it = True
+                                break
+                        if not send_it:
+                            self.connector.send_message(
+                                "Sorry, I don't know anyone named {0}.".format(nickname)
+                            )
+                        else:
+                            self.known_usernames.add(nickname)
+                    except chatbox_connector.TransferError:
+                        # yeah, whatever
+                        send_it = True
 
                 if send_it:
                     logger.debug("{0} sending message {1} to {2}".format(

@@ -267,7 +267,7 @@ class ChatboxConnector:
             return True
         return False
 
-    def ajax(self, operation, parameters=None):
+    def ajax(self, operation, parameters=None, retry=0):
         """
         Perform an AJAX request.
         :param operation: The name of the operation to perform.
@@ -288,6 +288,11 @@ class ChatboxConnector:
         with self.cookie_jar_lid:
             response = self.url_opener.open(self.ajax_url, data=post_data)
             ajax_bytes = response.read()
+
+        if response.status != 200 or len(ajax_bytes) == 0:
+            # something failed
+            self.retry(retry, self.ajax, operation, parameters)
+
         ajax_string = ajax_bytes.decode(self.server_encoding)
         return bs4.BeautifulSoup(io.StringIO(ajax_string), "xml")
 
