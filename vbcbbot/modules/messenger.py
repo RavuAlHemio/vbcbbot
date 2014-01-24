@@ -4,6 +4,7 @@ from vbcbbot.modules import Module
 import logging
 import sqlite3
 import time
+import xml.dom as dom
 
 __author__ = 'ondra'
 
@@ -39,9 +40,19 @@ class Messenger(Module):
                     # ask AJAX first
                     send_it = False
                     try:
-                        result_soup = self.connector.ajax("usersearch", {"fragment": nickname})
-                        for username in result_soup.users.find_all("user"):
-                            if nickname == username.text:
+                        result_dom = self.connector.ajax("usersearch", {"fragment": nickname})
+                        for child in result_dom.documentElement.childNodes:
+                            if child.nodeType != child.ELEMENT_NODE:
+                                continue
+                            if child.localName != "user":
+                                continue
+
+                            username_text = ""
+                            for textChild in child.childNodes:
+                                if textChild.nodeType == child.TEXT_NODE:
+                                    username_text += textChild.data
+
+                            if nickname == username_text:
                                 send_it = True
                                 break
                         if not send_it:

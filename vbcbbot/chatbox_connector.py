@@ -11,6 +11,7 @@ import unicodedata
 import urllib.error as ue
 import urllib.parse as up
 import urllib.request as ur
+import xml.dom.minidom as minidom
 
 __author__ = 'ondra'
 
@@ -294,7 +295,7 @@ class ChatboxConnector:
             self.retry(retry, self.ajax, operation, parameters)
 
         ajax_string = ajax_bytes.decode(self.server_encoding)
-        return bs4.BeautifulSoup(io.StringIO(ajax_string), "xml")
+        return minidom.parseString(ajax_string)
 
     def send_message(self, message, bypass_stfu=False, bypass_filters=False, retry=0):
         """
