@@ -289,7 +289,7 @@ class ChatboxConnector:
             response = self.url_opener.open(self.ajax_url, data=post_data)
             ajax_bytes = response.read()
         ajax_string = ajax_bytes.decode(self.server_encoding)
-        return bs4.BeautifulSoup(ajax_string, "xml")
+        return bs4.BeautifulSoup(io.StringIO(ajax_string), "xml")
 
     def send_message(self, message, bypass_stfu=False, bypass_filters=False, retry=0):
         """
