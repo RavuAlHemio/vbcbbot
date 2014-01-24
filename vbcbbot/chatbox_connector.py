@@ -133,7 +133,7 @@ class ChatboxConnector:
         self.html_decompiler = html_decompiler
 
         # assume a good default for these
-        self.server_encoding = "iso-8859-1"
+        self.server_encoding = "windows-1252"
         self.time_between_reads = 5
         self.message_id_piece = "misc.php?ccbloc="
         self.user_id_piece = "member.php?u="
