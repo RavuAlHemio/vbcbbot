@@ -352,13 +352,15 @@ class ChatboxConnector:
         Fetches new messages from the chatbox.
         :param retry: Level of desperation fetching the new messages.
         """
-        try:
-            messages_response = self.url_opener.open(self.messages_url)
-        except ue.URLError:
-            logger.exception("fetching new messages failed")
-            # try again next time
-            return
-        messages_string = messages_response.read().decode(self.server_encoding)
+        with self.cookie_jar_lid:
+            try:
+                messages_response = self.url_opener.open(self.messages_url)
+                messages_bytes = messages_response.read()
+            except ue.URLError:
+                logger.exception("fetching new messages failed")
+                # try again next time
+                return
+        messages_string = messages_bytes.decode(self.server_encoding)
         messages_soup = bs4.BeautifulSoup(io.StringIO(messages_string), "html.parser")
 
         all_trs = messages_soup.find_all("tr", recursive=False)
