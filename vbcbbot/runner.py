@@ -15,7 +15,9 @@ def run():
     # turn on logging
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)
+    formatter = logging.Formatter("{name}: {message}", style="{")
     stderr_handler = logging.StreamHandler(stream=sys.stderr)
+    stderr_handler.setFormatter(formatter)
     stderr_handler.setLevel(logging.DEBUG)
     root_logger.addHandler(stderr_handler)
 
