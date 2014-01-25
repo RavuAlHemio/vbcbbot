@@ -7,7 +7,7 @@ class Module:
         """
         Act upon a modification of a message currently visible in the chatbox. Called by the
         communicator.
-        :type modified_message: ChatboxMessage
+        :type modified_message: vbcbbot.chatbox_connector.ChatboxMessage
         :param modified_message: The updated message object.
         """
         pass
@@ -15,7 +15,7 @@ class Module:
     def message_received(self, new_message):
         """
         Act upon the reception of a new message. Called by the communicator.
-        :type new_message: ChatboxMessage
+        :type new_message: vbcbbot.chatbox_connector.ChatboxMessage
         :param new_message: The new message object.
         """
         pass
@@ -24,7 +24,7 @@ class Module:
         """
         Act upon the reception of a new message that arrived as part of the "just connected" salvo.
         Called by the communicator. Calls message_received by default.
-        :type new_message: ChatboxMessage
+        :type new_message: vbcbbot.chatbox_connector.ChatboxMessage
         :param new_message: The new message object.
         """
         self.message_received(new_message)

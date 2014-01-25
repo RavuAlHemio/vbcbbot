@@ -114,23 +114,18 @@ class ChatboxMessage:
 class ChatboxConnector:
     """Facilitates communication with a vBulletin chatbox."""
 
-    def __init__(self, base_url, username, password, stfu_command=None, stfu_delay=30,
-                 html_decompiler=None):
+    def __init__(self, base_url, username, password, html_decompiler=None):
         """
         Connect to a vBulletin chatbox.
         :param base_url: The base URL of the chatbox, down to the subdirectory containing vBulletin.
         :param username: The forum username with which to log in.
         :param password: The forum password with which to log in.
-        :param stfu_command: The command to silence outgoing communication.
-        :param stfu_delay: How long to shut up for, in minutes.
         :param html_decompiler: A correctly configured HTML decompiler, or None.
         :return: A new chatbox connector.
         """
         self.base_url = base_url
         self.username = username
         self.password = password
-        self.stfu_command = stfu_command
-        self.stfu_delay = stfu_delay
         self.html_decompiler = html_decompiler
 
         # assume a good default for these
@@ -162,7 +157,7 @@ class ChatboxConnector:
         self.security_token = None
         self.last_message_received = -1
         self.stop_reading = False
-        self.stfu_start = None
+        self.stfu_deadline = None
         """:type: int|None"""
 
     def start(self):
@@ -262,9 +257,9 @@ class ChatboxConnector:
         func(*pos_args, retry=retry_count+1, **kw_args)
 
     def should_stfu(self):
-        if self.stfu_start is None:
+        if self.stfu_deadline is None:
             return False
-        if time.time() < self.stfu_start + 60*self.stfu_delay:
+        if time.time() < self.stfu_deadline:
             return True
         return False
 
@@ -432,12 +427,6 @@ class ChatboxConnector:
             else:
                 self.old_message_ids_to_bodies[message_id] = message_body
                 new_and_edited_messages.insert(0, (False, message))
-
-                if not self.initial_salvo and self.stfu_command is not None and \
-                        message.user_name != self.username and message_body == self.stfu_command:
-                    # STFU
-                    logger.info("{0} shut me up for {1} minutes".format(nick, self.stfu_delay))
-                    self.stfu_start = time.time()
 
         # cull the bodies of messages that aren't visible anymore
         for message_id in list(self.old_message_ids_to_bodies.keys()):
