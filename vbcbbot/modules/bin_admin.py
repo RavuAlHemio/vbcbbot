@@ -44,7 +44,7 @@ class BinAdmin(Module):
             trigger = body[:16]
             if len(body) > 16:
                 trigger += "..."
-            logger.debug("ignoring bot trigger {0}".format(repr(trigger))
+            logger.debug("ignoring bot trigger {0}".format(repr(trigger)))
             return
 
         match = arrow_waste_bin_re.match(body)
