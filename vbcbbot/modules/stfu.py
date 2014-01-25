@@ -96,6 +96,7 @@ class Stfu(Module):
             logger.info("{0} shut me up for {1} minutes".format(
                 new_message.user_name, self.stfu_duration/60
             ))
+            self.who_shut_me_up_last = new_message.user_name
             self.connector.stfu_deadline = the_time + self.stfu_duration
 
         elif body == "!unstfu":
