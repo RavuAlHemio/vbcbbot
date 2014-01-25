@@ -139,7 +139,7 @@ class Stfu(Module):
             cursor = self.database.cursor()
             cursor.execute(
                 "INSERT OR REPLACE INTO "
-                "running_bans (user_name, deadline, banner) "
+                "running_bans (banned_user, deadline, banner) "
                 "VALUES (?, ?, ?)",
                 (ban_this_user, deadline, new_message.user_name)
             )
@@ -170,7 +170,7 @@ class Stfu(Module):
             unban_this_user = body[len("!stfuunban "):]
 
             cursor = self.database.cursor()
-            cursor.execute("DELETE FROM running_bans WHERE user_name=?", (unban_this_user,))
+            cursor.execute("DELETE FROM running_bans WHERE banned_user=?", (unban_this_user,))
             self.database.commit()
 
             logger.info("{0} unbanned {1} from using !stfu".format(
