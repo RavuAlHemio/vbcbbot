@@ -196,7 +196,9 @@ class Stfu(Module):
         if config_section is None:
             config_section = {}
 
-        self.stfu_duration = int(config_section["stfu duration"])
+        self.stfu_duration = 30*60
+        if "duration" in config_section:
+            self.stfu_duration = int(config_section["duration"])
 
         self.database = None
         if "database" in config_section:
