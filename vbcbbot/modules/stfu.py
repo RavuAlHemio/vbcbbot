@@ -17,7 +17,7 @@ time_re = re.compile(
     "(?:([1-9][0-9]*)s)?"
     "$"
 )
-time_format = "%Y-%m-%s %H:%M:%S"
+time_format = "%Y-%m-%d %H:%M:%S"
 
 
 def duration_string_to_seconds(duration_string):
