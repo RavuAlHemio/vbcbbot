@@ -83,7 +83,7 @@ class Stfu(Module):
                 (new_message.user_name,)
             )
             for row in cursor:
-                if int(row[0]) < the_time:
+                if int(row[0]) > the_time:
                     # ignore it
                     logger.debug("{0} wants to shut me up but they're banned until {1}".format(
                         new_message.user_name,
