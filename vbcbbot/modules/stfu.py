@@ -58,7 +58,7 @@ class Stfu(Module):
         """Output a snarky message."""
         if len(self.snark) > 0:
             snarky_message = self.random.choice(self.snark)
-            formatted_snarky_message = snarky_message.replace("%USERNAME%", user_name)
+            formatted_snarky_message = snarky_message.replace("&&USERNAME&&", user_name)
             self.connector.send_message(formatted_snarky_message)
 
     def message_received_on_new_connection(self, new_message):
