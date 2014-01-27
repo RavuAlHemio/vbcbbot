@@ -186,7 +186,7 @@ class ChatboxConnector:
             self.cookie_jar.clear()
 
             # log in
-            login_response = self.url_opener.open(self.login_url, data=post_data)
+            login_response = self.url_opener.open(self.login_url, data=post_data, timeout=10)
             login_response.read()
 
         # fetch the security token too
@@ -199,7 +199,7 @@ class ChatboxConnector:
         logger.info("fetching new security token")
         # fetch a (computationally cheap) page from the server
         with self.cookie_jar_lid:
-            cheap_response = self.url_opener.open(self.cheap_page_url)
+            cheap_response = self.url_opener.open(self.cheap_page_url, timeout=10)
             cheap_page_data = cheap_response.read()
             cheap_page_string = cheap_page_data.decode(self.server_encoding)
 
@@ -283,7 +283,7 @@ class ChatboxConnector:
         post_data = up.urlencode(post_values, encoding="utf-8").encode("us-ascii")
 
         with self.cookie_jar_lid:
-            response = self.url_opener.open(self.ajax_url, data=post_data)
+            response = self.url_opener.open(self.ajax_url, data=post_data, timeout=10)
             ajax_bytes = response.read()
 
         if response.status != 200 or len(ajax_bytes) == 0:
@@ -315,7 +315,8 @@ class ChatboxConnector:
         # send!
         with self.cookie_jar_lid:
             try:
-                post_response = self.url_opener.open(self.post_edit_url, data=request_bytes)
+                post_response = self.url_opener.open(self.post_edit_url, data=request_bytes,
+                                                     timeout=10)
             except ue.URLError:
                 logger.exception("sending message")
                 # don't send the message -- fixing this might take longer
@@ -341,7 +342,7 @@ class ChatboxConnector:
 
         # send!
         with self.cookie_jar_lid:
-            edit_response = self.url_opener.open(self.post_edit_url, data=request_bytes)
+            edit_response = self.url_opener.open(self.post_edit_url, data=request_bytes, timeout=10)
             edit_response.read()
 
     def fetch_new_messages(self, retry=0):
@@ -351,7 +352,7 @@ class ChatboxConnector:
         """
         with self.cookie_jar_lid:
             try:
-                messages_response = self.url_opener.open(self.messages_url)
+                messages_response = self.url_opener.open(self.messages_url, timeout=10)
                 messages_bytes = messages_response.read()
             except (ue.URLError, hcl.HTTPException):
                 logger.exception("fetching new messages failed")
