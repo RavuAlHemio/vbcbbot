@@ -165,7 +165,7 @@ class BinAdmin(Module):
 
     def __init__(self, connector, config_section):
         """
-        Create a new MA48 responder.
+        Create a new Bin Admin responder.
         :param connector: The communicator used to communicate with the chatbox.
         :param config_section: A dictionary of configuration values for this module.
         """
