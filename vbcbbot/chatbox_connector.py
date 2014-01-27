@@ -1,6 +1,7 @@
 from vbcbbot.html_decompiler import HtmlDecompiler
 
 import bs4
+import http.client as hcl
 import http.cookiejar as cj
 import io
 import logging
@@ -352,7 +353,7 @@ class ChatboxConnector:
             try:
                 messages_response = self.url_opener.open(self.messages_url)
                 messages_bytes = messages_response.read()
-            except ue.URLError:
+            except (ue.URLError, hcl.HTTPException):
                 logger.exception("fetching new messages failed")
                 # try again next time
                 return
