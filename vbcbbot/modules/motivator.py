@@ -45,8 +45,8 @@ class Motivator(Module):
 
             elif body == "!how can you {0} me".format(verb):
                 categories_string = ", ".join(sorted(categories_to_motivators.keys()))
-                self.connector.send_message("{0}: I can motivate you using {1}".format(
-                    message.user_name, categories_string
+                self.connector.send_message("{0}: I can {2} you using {1}".format(
+                    message.user_name, categories_string, verb
                 ))
 
     def __init__(self, connector, config_section):
