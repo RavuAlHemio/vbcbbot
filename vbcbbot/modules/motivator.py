@@ -77,7 +77,7 @@ class Motivator(Module):
                     if len(motivator) == 0:
                         continue
                     motivators.add(motivator)
-                categories_to_motivators[category] = motivators
-            self.verbs_to_categories_to_motivators[verb] = categories_to_motivators
+                categories_to_motivators[category.lower()] = motivators
+            self.verbs_to_categories_to_motivators[verb.lower()] = categories_to_motivators
 
         self.random = random.Random()
