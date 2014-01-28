@@ -1,5 +1,6 @@
 from vbcbbot.modules import Module
 
+import configparser
 import logging
 import random
 
@@ -20,25 +21,33 @@ class Motivator(Module):
         # extract text and strip
         body = message.body_soup().text.strip()
 
-        if body == "!motivate me":
-            # pick a category
-            category_list = list(self.categories)
-            category = self.random.choice(category_list)
-            motivator = self.random.choice(self.categories[category])
+        # find the verb
+        for (verb, categories_to_motivators) in self.verbs_to_categories_to_motivators.items():
+            if body == "!{0} me".format(verb):
+                # pick a category
+                category_list = list(categories_to_motivators.keys())
+                category = self.random.choice(category_list)
 
-            self.connector.send_message("{0}: {1}".format(message.user_name, motivator))
+                # pick a motivator
+                motivator_list = list(categories_to_motivators[category])
+                motivator = self.random.choice(motivator_list)
 
-        elif body.startswith("!motivate me using "):
-            category = body[len("!motivate me using "):].strip()
-            if category not in self.categories:
-                self.connector.send_message("{0}: I don\u2019 know that motivator category.")
-                return
-            motivator = self.random.choice(self.categories[category])
-            self.connector.send_message("{0}: {1}".format(message.user_name, motivator))
+                # personalize
+                motivator = motivator.replace("&&USERNAME&&", message.user_name)
 
-        elif body.startswith("!how can you motivate me"):
-            self.connector.send_message("{0}: I can motivate you using: ".format(message.user_name)
-                                        + ", ".join(sorted(self.categories.keys())))
+                self.connector.send_message("{0}: {1}".format(message.user_name, motivator))
+
+            elif body.startswith("!{0} me using ".format(verb)):
+                category = body[len("!{0} me using ".format(verb)):].strip()
+                if category not in categories_to_motivators:
+                    self.connector.send_message("{0}: I don\u2019t now that category.")
+                    return
+
+            elif body == "!how can you {0} me".format(verb):
+                categories_string = ", ".join(sorted(categories_to_motivators.keys()))
+                self.connector.send_message("{0}: I can motivate you using {1}".format(
+                    message.user_name, categories_string
+                ))
 
     def __init__(self, connector, config_section):
         """
@@ -51,14 +60,26 @@ class Motivator(Module):
         if config_section is None:
             config_section = {}
 
-        self.categories = {}
-        for (category, phrase_string) in config_section.items():
-            phrases = []
-            for phrase_line in phrase_string.split("\n"):
-                phrase = phrase_line.strip()
-                if len(phrase) == 0:
-                    continue
-                phrases.append(phrase)
-            self.categories[category] = phrases
+        config = configparser.ConfigParser()
+        with open(config_section["config file"], "r") as f:
+            config.read_file(f)
+
+        self.verbs_to_categories_to_motivators = {}
+        for (verb, section) in config.items():
+            if verb == "DEFAULT":
+                continue
+
+            categories_to_motivators = {}
+            for (category, motivators_string) in section.items():
+                motivators = set()
+                for line in motivators_string.split("\n"):
+                    motivator = line.strip()
+                    if len(motivator) == 0:
+                        continue
+                    motivators.add(motivator)
+                categories_to_motivators[category] = motivators
+            self.verbs_to_categories_to_motivators[verb] = categories_to_motivators
+
+        logger.debug(self.verbs_to_categories_to_motivators)
 
         self.random = random.Random()
