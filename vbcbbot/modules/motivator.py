@@ -80,6 +80,4 @@ class Motivator(Module):
                 categories_to_motivators[category] = motivators
             self.verbs_to_categories_to_motivators[verb] = categories_to_motivators
 
-        logger.debug(self.verbs_to_categories_to_motivators)
-
         self.random = random.Random()
