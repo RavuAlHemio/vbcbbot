@@ -12,6 +12,16 @@ logger = logging.getLogger("vbcbbot.modules.motivator")
 class Motivator(Module):
     """Motivates those who ask for it."""
 
+    def send_random_motivator_from_list(self, motivator_list, request_message):
+        # pick a motivator
+        motivator = self.random.choice(motivator_list)
+
+        # personalize
+        motivator = motivator.replace("&&USERNAME&&", request_message.user_name)
+
+        # send
+        self.connector.send_message("{0}: {1}".format(request_message.user_name, motivator))
+
     def message_received_on_new_connection(self, message):
         return
 
@@ -30,18 +40,16 @@ class Motivator(Module):
 
                 # pick a motivator
                 motivator_list = list(categories_to_motivators[category])
-                motivator = self.random.choice(motivator_list)
-
-                # personalize
-                motivator = motivator.replace("&&USERNAME&&", message.user_name)
-
-                self.connector.send_message("{0}: {1}".format(message.user_name, motivator))
+                self.send_random_motivator_from_list(motivator_list, message)
 
             elif body.startswith("!{0} me using ".format(verb)):
                 category = body[len("!{0} me using ".format(verb)):].strip()
                 if category not in categories_to_motivators:
                     self.connector.send_message("{0}: I don\u2019t know that category.")
                     return
+
+                motivator_list = list(categories_to_motivators[category])
+                self.send_random_motivator_from_list(motivator_list, message)
 
             elif body == "!how can you {0} me".format(verb):
                 categories_string = ", ".join(sorted(categories_to_motivators.keys()))
