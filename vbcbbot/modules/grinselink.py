@@ -15,7 +15,7 @@ class Grinselink(Module):
         if message.user_name != self.username_to_monitor:
             return
 
-        logging.debug("{0}'s message edited!".format(message.user_name))
+        logger.debug("{0}'s message edited!".format(message.user_name))
 
         if message.id in self.known_grinselink_ids:
             # we already reacted to this
@@ -23,7 +23,7 @@ class Grinselink(Module):
 
         soup = message.body_soup()
         for _ in soup.find_all("a", href=True):
-            logging.info("detected stealth Grinselink")
+            logger.info("detected stealth Grinselink")
             self.known_grinselink_ids.add(message.id)
             self.connector.send_message(self.message_to_post_stealth)
             return
@@ -39,11 +39,11 @@ class Grinselink(Module):
         if message.user_name != self.username_to_monitor:
             return
 
-        logging.debug("message posted by {0}!".format(message.user_name))
+        logger.debug("message posted by {0}!".format(message.user_name))
 
         soup = message.body_soup()
         for _ in soup.find_all("a", href=True):
-            logging.info("detected Grinselink")
+            logger.info("detected Grinselink")
             self.known_grinselink_ids.add(message.id)
             self.connector.send_message(self.message_to_post)
             return
