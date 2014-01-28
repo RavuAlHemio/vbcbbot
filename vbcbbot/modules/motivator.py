@@ -40,7 +40,7 @@ class Motivator(Module):
             elif body.startswith("!{0} me using ".format(verb)):
                 category = body[len("!{0} me using ".format(verb)):].strip()
                 if category not in categories_to_motivators:
-                    self.connector.send_message("{0}: I don\u2019t now that category.")
+                    self.connector.send_message("{0}: I don\u2019t know that category.")
                     return
 
             elif body == "!how can you {0} me".format(verb):
