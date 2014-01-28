@@ -292,6 +292,7 @@ class ChatboxConnector:
         if response.status != 200 or len(ajax_bytes) == 0:
             # something failed
             self.retry(retry, self.ajax, operation, parameters)
+            return
 
         ajax_string = ajax_bytes.decode(self.server_encoding)
         return minidom.parseString(ajax_string)
@@ -329,6 +330,7 @@ class ChatboxConnector:
         if post_response.status != 200 or len(post_response_body) != 0:
             # something failed
             self.retry(retry, self.send_message, message, bypass_stfu, bypass_filters)
+            return
 
     def edit_message(self, message_id, new_body):
         """
@@ -359,8 +361,13 @@ class ChatboxConnector:
                 messages_response = self.url_opener.open(self.messages_url, timeout=self.timeout)
                 messages_bytes = messages_response.read()
             except (ue.URLError, hcl.HTTPException, socket.timeout, ConnectionError):
-                logger.exception("fetching new messages failed")
-                # try again next time
+                logger.exception("fetching new messages failed, retry {0}".format(retry))
+                # try harder
+                try:
+                    self.retry(retry, self.fetch_new_messages)
+                except TransferError:
+                    # oh well, we'll try again next time
+                    pass
                 return
         messages_string = messages_bytes.decode(self.server_encoding)
         messages_soup = bs4.BeautifulSoup(io.StringIO(messages_string), "html.parser")
@@ -369,6 +376,7 @@ class ChatboxConnector:
         if len(all_trs) == 0:
             # aw crap
             self.retry(retry, self.fetch_new_messages)
+            return
 
         new_last_message = self.last_message_received
         visible_message_ids = set()
