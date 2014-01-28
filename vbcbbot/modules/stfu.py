@@ -255,3 +255,11 @@ class Stfu(Module):
         )
         """)
         self.database.commit()
+
+        # clear out old bans
+        cursor = self.database.cursor()
+        cursor.execute(
+            "DELETE FROM running_bans WHERE deadline < ?",
+            (time.time(),)
+        )
+        self.database.commit()
