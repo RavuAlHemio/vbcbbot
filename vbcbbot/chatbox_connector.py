@@ -320,7 +320,7 @@ class ChatboxConnector:
             try:
                 post_response = self.url_opener.open(self.post_edit_url, data=request_bytes,
                                                      timeout=self.timeout)
-            except (ue.URLError, hcl.HTTPException, socket.timeout):
+            except (ue.URLError, hcl.HTTPException, socket.timeout, ConnectionError):
                 logger.exception("sending message")
                 # don't send the message -- fixing this might take longer
                 return
@@ -358,7 +358,7 @@ class ChatboxConnector:
             try:
                 messages_response = self.url_opener.open(self.messages_url, timeout=self.timeout)
                 messages_bytes = messages_response.read()
-            except (ue.URLError, hcl.HTTPException, socket.timeout):
+            except (ue.URLError, hcl.HTTPException, socket.timeout, ConnectionError):
                 logger.exception("fetching new messages failed")
                 # try again next time
                 return
