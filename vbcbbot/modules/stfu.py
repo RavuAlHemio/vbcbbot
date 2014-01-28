@@ -229,9 +229,9 @@ class Stfu(Module):
         cursor = self.database.cursor()
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS running_bans (
-            banned_user TEXT,
+            banned_user TEXT NOT NULL,
             deadline INT,
-            banner TEXT,
+            banner TEXT NOT NULL,
             PRIMARY KEY (banned_user)
         )
         """)

@@ -164,10 +164,10 @@ class Messenger(Module):
         cursor = self.database.cursor()
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS messages (
-            timestamp INT,
-            sender TEXT,
-            recipient TEXT,
-            body TEXT
+            timestamp INT NOT NULL,
+            sender TEXT NOT NULL,
+            recipient TEXT NOT NULL,
+            body TEXT NOT NULL
         )
         """)
         self.database.commit()

@@ -183,17 +183,17 @@ class BinAdmin(Module):
         cursor = self.database.cursor()
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS bins (
-            bin TEXT,
+            bin TEXT NOT NULL,
             PRIMARY KEY (bin)
         )
         """)
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS bin_items (
-            bin TEXT REFERENCES bins (bin),
-            item TEXT,
-            arrow TEXT,
-            thrower TEXT,
-            timestamp TEXT,
+            bin TEXT NOT NULL REFERENCES bins (bin),
+            item TEXT NOT NULL,
+            arrow TEXT NOT NULL,
+            thrower TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
             PRIMARY KEY (bin, item)
         )
         """)
