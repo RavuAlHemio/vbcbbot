@@ -142,7 +142,7 @@ class Stfu(Module):
             if seconds == 0:
                 self.connector.send_message("Invalid timespec!")
                 return
-            elif seconds == 0:
+            elif seconds == -1:
                 deadline = None
             else:
                 deadline = time.time() + seconds
