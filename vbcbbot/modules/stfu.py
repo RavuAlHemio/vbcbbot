@@ -27,6 +27,9 @@ def duration_string_to_seconds(duration_string):
     :type duration_string: str
     :return: The number of seconds described by the duration string.
     """
+    if duration_string == "forever":
+        return -1
+
     match = time_re.match(duration_string)
     seconds = 0
 
@@ -83,7 +86,14 @@ class Stfu(Module):
                 (new_message.user_name,)
             )
             for row in cursor:
-                if int(row[0]) > the_time:
+                if row[0] is None:
+                    # ignore it
+                    logger.debug("{0} wants to shut be up but they're permabanned".format(
+                        new_message.user_name
+                    ))
+                    self.send_snark(new_message.user_name)
+                    return
+                elif int(row[0]) > the_time:
                     # ignore it
                     logger.debug("{0} wants to shut me up but they're banned until {1}".format(
                         new_message.user_name,
@@ -132,9 +142,10 @@ class Stfu(Module):
             if seconds == 0:
                 self.connector.send_message("Invalid timespec!")
                 return
-
-            # calculate the deadline
-            deadline = time.time() + seconds
+            elif seconds == 0:
+                deadline = None
+            else:
+                deadline = time.time() + seconds
 
             # insert it into the DB
             cursor = self.database.cursor()
@@ -153,12 +164,20 @@ class Stfu(Module):
             logger.info("{0} banned {1} from using !stfu for {2}".format(
                 new_message.user_name, ban_this_user, time_spec
             ))
-            self.connector.send_message(
-                "Alright! Banning {0} from using the !stfu function until {1}.".format(
-                    ban_this_user, time.strftime(time_format, time.localtime(deadline))
-                ),
-                bypass_stfu=True
-            )
+            if deadline is None:
+                self.connector.send_message(
+                    "Alright! Banning {0} from using the !stfu function.".format(
+                        ban_this_user
+                    ),
+                    bypass_stfu=True
+                )
+            else:
+                self.connector.send_message(
+                    "Alright! Banning {0} from using the !stfu function until {1}.".format(
+                        ban_this_user, time.strftime(time_format, time.localtime(deadline))
+                    ),
+                    bypass_stfu=True
+                )
 
         elif body.startswith("!stfuunban "):
             if new_message.user_name not in self.admins:
