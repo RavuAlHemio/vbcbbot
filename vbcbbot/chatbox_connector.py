@@ -251,10 +251,16 @@ class ChatboxConnector:
 
         if retry_count == 0:
             # renew the token
-            self.fetch_security_token()
+            try:
+                self.fetch_security_token()
+            except:
+                pass
         elif retry_count == 1:
             # login anew
-            self.login()
+            try:
+                self.login()
+            except:
+                    pass
         else:
             raise TransferError()
 
