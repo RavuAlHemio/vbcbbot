@@ -130,8 +130,6 @@ class Messenger(Module):
         if config_section is None:
             config_section = {}
 
-        self.known_usernames = set()
-
         self.database = None
         if "database" in config_section:
             self.database = sqlite3.connect(config_section["database"], check_same_thread=False)
