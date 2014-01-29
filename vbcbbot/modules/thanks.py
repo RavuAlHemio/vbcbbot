@@ -26,9 +26,15 @@ class Thanks(Module):
         # parse and strip
         body = message.decompiled_body().strip()
 
-        if body.startswith("!thanks "):
+        thank = False
+        if body.startswith("!thank "):
+            thank = True
+            nickname = body[len("!thank "):].strip()
+        elif body.startswith("!thanks "):
+            thank = True
             nickname = body[len("!thanks "):].strip()
 
+        if thank:
             if nickname == message.user_name:
                 self.connector.send_message("You are so full of yourself, {0}.".format(nickname))
 
