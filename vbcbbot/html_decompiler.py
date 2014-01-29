@@ -246,6 +246,9 @@ class HtmlDecompiler:
                         video_selector = "youtube;" + match.group(1)
                         ret.append(Element("video", [Text("a video")], video_selector))
 
+                elif child.name == "br":
+                    ret.append(Text("\n"))
+
                 else:
                     logger.warning("skipping unknown HTML element {0}".format(child.name))
 
