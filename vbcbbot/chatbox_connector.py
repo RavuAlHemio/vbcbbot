@@ -366,14 +366,10 @@ class ChatboxConnector:
             try:
                 messages_response = self.url_opener.open(self.messages_url, timeout=self.timeout)
                 messages_bytes = messages_response.read()
-            except (ue.URLError, hcl.HTTPException, socket.timeout, ConnectionError):
+            except:
                 logger.exception("fetching new messages failed, retry {0}".format(retry))
                 # try harder
-                try:
-                    self.retry(retry, self.fetch_new_messages)
-                except TransferError:
-                    # oh well, we'll try again next time
-                    pass
+                self.retry(retry, self.fetch_new_messages)
                 return
         messages_string = messages_bytes.decode(self.server_encoding)
         messages_soup = bs4.BeautifulSoup(io.StringIO(messages_string), "html.parser")
@@ -517,13 +513,15 @@ class ChatboxConnector:
         """
         Processes incoming messages.
         """
-        try:
-            while not self.stop_reading:
+        penalty_coefficient = 1
+        while not self.stop_reading:
+            try:
                 self.fetch_new_messages()
-                time.sleep(self.time_between_reads)
-        except:
-            logger.exception("perform reading")
-            raise
+                penalty_coefficient = 1
+            except:
+                logger.exception("exception fetching messages")
+            penalty_coefficient += 1
+            time.sleep(self.time_between_reads * penalty_coefficient)
 
 if __name__ == '__main__':
     def message_received(message):
