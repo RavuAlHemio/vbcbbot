@@ -146,7 +146,7 @@ class ChatboxConnector:
 
         # prepare the cookie jar, its lock, and the URL opener
         self.cookie_jar = cj.CookieJar()
-        self.cookie_jar_lid = threading.Lock()
+        self.cookie_jar_lid = threading.RLock()
         self.url_opener = ur.build_opener(ur.HTTPCookieProcessor(self.cookie_jar))
         self.reading_thread = threading.Thread(None, self.perform_reading,
                                                name="ChatboxConnector reading")
