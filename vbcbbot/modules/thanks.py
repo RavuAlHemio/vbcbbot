@@ -27,6 +27,7 @@ class Thanks(Module):
         body = message.decompiled_body().strip()
 
         thank = False
+        nickname = None
         if body.startswith("!thank "):
             thank = True
             nickname = body[len("!thank "):].strip()
