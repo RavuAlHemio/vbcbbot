@@ -35,35 +35,12 @@ class Messenger(Module):
                 self.connector.send_message("Sorry, I don't deliver to myself!")
             else:
                 send_it = True
-
-                if nickname not in self.known_usernames and len(nickname) > 3:
-                    # ask AJAX first
-                    send_it = False
-                    try:
-                        result_dom = self.connector.ajax("usersearch", {"fragment": nickname})
-                        for child in result_dom.documentElement.childNodes:
-                            if child.nodeType != child.ELEMENT_NODE:
-                                continue
-                            if child.localName != "user":
-                                continue
-
-                            username_text = ""
-                            for textChild in child.childNodes:
-                                if textChild.nodeType == child.TEXT_NODE:
-                                    username_text += textChild.data
-
-                            if nickname == username_text:
-                                send_it = True
-                                break
-                        if not send_it:
-                            self.connector.send_message(
-                                "Sorry, I don't know anyone named {0}.".format(nickname)
-                            )
-                        else:
-                            self.known_usernames.add(nickname)
-                    except chatbox_connector.TransferError:
-                        # yeah, whatever
-                        send_it = True
+                try:
+                    if self.connector.get_user_id_for_name(nickname) == -1:
+                        send_it = False
+                except chatbox_connector.TransferError:
+                    # send it
+                    pass
 
                 if send_it:
                     logger.debug("{0} sending message {1} to {2}".format(
