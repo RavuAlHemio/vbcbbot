@@ -145,4 +145,8 @@ class Messenger(Module):
             body TEXT NOT NULL
         )
         """)
+        cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_messages_recipient_timestamp
+        ON messages (recipient, timestamp)
+        """)
         self.database.commit()
