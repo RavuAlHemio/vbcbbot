@@ -156,6 +156,7 @@ class ChatboxConnector:
         self.new_message_from_salvo_subscribers = set()
         self.message_modified_subscribers = set()
         self.old_message_ids_to_bodies = {}
+        self.usernames_to_user_ids = {}
         self.initial_salvo = True
         self.security_token = None
         self.last_message_received = -1
@@ -280,8 +281,8 @@ class ChatboxConnector:
         :type operation: str
         :param parameters: The parameters to supply.
         :type parameters: dict[str, str]
-        :return: The result soup.
-        :rtype: bs4.BeautifulSoup
+        :return: The result XML DOM.
+        :rtype: minidom.Document
         """
         post_values = {
             "securitytoken": self.security_token,
@@ -431,6 +432,9 @@ class ChatboxConnector:
                 # bah, humbug
                 continue
 
+            # cache the nickname
+            self.usernames_to_user_ids[nick] = user_id
+
             message_body = tds[1].decode_contents().strip()
             message = ChatboxMessage(message_id, user_id, nick, message_body, timestamp,
                                      self.html_decompiler)
@@ -522,6 +526,42 @@ class ChatboxConnector:
                 logger.exception("exception fetching messages")
             penalty_coefficient += 1
             time.sleep(self.time_between_reads * penalty_coefficient)
+
+    def get_user_id_for_name(self, username):
+        """
+        Returns the user ID of the user with the given name.
+        :return: The user ID of the user with the given name, or -1 if the user does not exist.
+        """
+        if username in self.usernames_to_user_ids:
+            return self.usernames_to_user_ids[username]
+
+        if len(username) < 3:
+            # vB doesn't allow usernames shorter than three characters
+            return -1
+
+        result_dom = self.ajax("usersearch", {"fragment": username})
+        for child in result_dom.documentElement.childNodes:
+            if child.nodeType != child.ELEMENT_NODE:
+                continue
+            if child.localName != "user":
+                continue
+            if not child.hasAttribute("userid"):
+                continue
+
+            user_id = child.getAttribute("userid")
+
+            username_text = ""
+            for textChild in child.childNodes:
+                if textChild.nodeType == child.TEXT_NODE:
+                    username_text += textChild.data
+
+            if username == username_text:
+                # cache!
+                self.usernames_to_user_ids[username] = user_id
+                return int(user_id)
+
+        # not found
+        return -1
 
 if __name__ == '__main__':
     def message_received(message):
