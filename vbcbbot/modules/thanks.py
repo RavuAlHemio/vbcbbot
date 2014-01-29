@@ -29,6 +29,9 @@ class Thanks(Module):
         if body.startswith("!thanks "):
             nickname = body[len("!thanks "):].strip()
 
+            if nickname == message.user_name:
+                self.connector.send_message("You are so full of yourself, {0}.".format(nickname))
+
             try:
                 if self.connector.get_user_id_for_name(nickname) == -1:
                     self.connector.send_message("I don't know '{0}'!".format(nickname))
