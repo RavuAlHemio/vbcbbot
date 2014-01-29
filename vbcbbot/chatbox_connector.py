@@ -433,7 +433,7 @@ class ChatboxConnector:
                 continue
 
             # cache the nickname
-            self.usernames_to_user_ids[nick] = user_id
+            self.usernames_to_user_ids[nick.lower()] = user_id
 
             message_body = tds[1].decode_contents().strip()
             message = ChatboxMessage(message_id, user_id, nick, message_body, timestamp,
@@ -532,8 +532,9 @@ class ChatboxConnector:
         Returns the user ID of the user with the given name.
         :return: The user ID of the user with the given name, or -1 if the user does not exist.
         """
-        if username in self.usernames_to_user_ids:
-            return self.usernames_to_user_ids[username]
+        lower_username = username.lower()
+        if lower_username in self.usernames_to_user_ids:
+            return self.usernames_to_user_ids[lower_username]
 
         if len(username) < 3:
             # vB doesn't allow usernames shorter than three characters
@@ -557,7 +558,7 @@ class ChatboxConnector:
 
             if username == username_text:
                 # cache!
-                self.usernames_to_user_ids[username] = user_id
+                self.usernames_to_user_ids[lower_username] = user_id
                 return int(user_id)
 
         # not found
