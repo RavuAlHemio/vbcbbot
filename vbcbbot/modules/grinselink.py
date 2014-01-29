@@ -11,6 +11,9 @@ remember_this_many_posts = 30
 class Grinselink(Module):
     """Responds to links posted by a specific user with a specific message."""
 
+    def message_received_on_new_connection(self, new_message):
+        pass
+
     def message_modified(self, message):
         if message.user_name != self.username_to_monitor:
             return
