@@ -56,7 +56,7 @@ class Thanks(Module):
             cursor = self.database.cursor()
             cursor.execute(
                 "INSERT OR IGNORE INTO thanks (thanker, thankee_folded, thank_count) "
-                "VALUES (?, ?, 1)",
+                "VALUES (?, ?, 0)",
                 (message.user_name, lower_nickname)
             )
             cursor.execute(
