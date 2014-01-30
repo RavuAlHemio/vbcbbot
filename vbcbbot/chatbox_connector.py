@@ -69,7 +69,7 @@ def ajax_url_encode_string(string):
     :return: The bytes representing the message in a format understood by vB AJAX.
     """
     ret = b""
-    for c in key:
+    for c in string:
         if c in url_safe_characters:
             ret += c
         elif ord(c) <= 0x7f:
