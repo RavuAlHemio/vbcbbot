@@ -36,34 +36,43 @@ class Thanks(Module):
             nickname = body[len("!thanks "):].strip()
 
         if thank:
-            if nickname == message.user_name:
-                self.connector.send_message("You are so full of yourself, {0}.".format(nickname))
+            lower_nickname = nickname.lower()
+            if lower_nickname == message.user_name.lower():
+                self.connector.send_message("You are so full of yourself, {0}.".format(
+                    message.user_name
+                ))
 
             try:
-                if self.connector.get_user_id_for_name(nickname) == -1:
+                user_info = self.connector.get_user_id_and_nickname_for_uncased_name(nickname)
+                if user_info is None:
                     self.connector.send_message("I don't know '{0}'!".format(nickname))
                     return
             except chatbox_connector.TransferError:
-                pass
+                self.connector.send_message("I don't know '{0}'!".format(nickname))
+                return
 
             logger.debug("{0} thanks {1}".format(message.user_name, nickname))
 
             cursor = self.database.cursor()
             cursor.execute(
-                "INSERT OR IGNORE INTO thanks (thanker, thankee, thank_count) VALUES (?, ?, 1)",
-                (message.user_name, nickname)
+                "INSERT OR IGNORE INTO thanks (thanker, thankee_folded, thank_count) "
+                "VALUES (?, ?, 1)",
+                (message.user_name, lower_nickname)
             )
             cursor.execute(
-                "UPDATE thanks SET thank_count=thank_count+1 WHERE thanker=? AND thankee=?",
-                (message.user_name, nickname)
+                "UPDATE thanks SET thank_count=thank_count+1 WHERE thanker=? AND thankee_folded=?",
+                (message.user_name, lower_nickname)
             )
             self.database.commit()
 
-            cursor.execute("SELECT SUM(thank_count) FROM thanks WHERE thankee=?", (nickname,))
+            cursor.execute(
+                "SELECT SUM(thank_count) FROM thanks WHERE thankee_folded=?",
+                (lower_nickname,)
+            )
             for row in cursor:
                 self.connector.send_message(
                     "{0}: Alright! By the way, {1} has been thanked {2} until now.".format(
-                        message.user_name, nickname,
+                        message.user_name, user_info[1],
                         "once" if row[0] == 1 else "{0} times".format(row[0])
                     )
                 )
@@ -71,22 +80,26 @@ class Thanks(Module):
 
         elif body.startswith("!thanked "):
             nickname = body[len("!thanked "):].strip()
+            lower_nickname = nickname.lower()
 
             try:
-                if self.connector.get_user_id_for_name(nickname) == -1:
+                user_info = self.connector.get_user_id_and_nickname_for_uncased_name(nickname)
+                if user_info is None:
                     self.connector.send_message("I don't know '{0}'!".format(nickname))
                     return
             except chatbox_connector.TransferError:
-                pass
+                self.connector.send_message("I don't know '{0}'!".format(nickname))
+                return
 
             cursor = self.database.cursor()
             cursor.execute(
-                "SELECT COALESCE(SUM(thank_count), 0) FROM thanks WHERE thankee=?", (nickname,)
+                "SELECT COALESCE(SUM(thank_count), 0) FROM thanks WHERE thankee_folded=?",
+                (lower_nickname,)
             )
             for row in cursor:
                 self.connector.send_message(
                     "{0}: {1} has been thanked {2} until now.".format(
-                        message.user_name, nickname,
+                        message.user_name, user_info[1],
                         "once" if row[0] == 1 else "{0} times".format(row[0])
                     )
                 )
@@ -113,10 +126,10 @@ class Thanks(Module):
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS thanks (
             thanker TEXT NOT NULL,
-            thankee TEXT NOT NULL,
+            thankee_folded TEXT NOT NULL,
             thank_count INT NOT NULL,
-            PRIMARY KEY (thanker, thankee)
+            PRIMARY KEY (thanker, thankee_folded)
         )
         """)
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_thanks_thankee ON thanks (thankee)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_thanks_thankee ON thanks (thankee_folded)")
         self.database.commit()

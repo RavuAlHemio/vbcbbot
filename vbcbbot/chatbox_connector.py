@@ -156,7 +156,7 @@ class ChatboxConnector:
         self.new_message_from_salvo_subscribers = set()
         self.message_modified_subscribers = set()
         self.old_message_ids_to_bodies = {}
-        self.usernames_to_user_ids = {}
+        self.lowercase_usernames_to_user_id_name_pairs = {}
         self.initial_salvo = True
         self.security_token = None
         self.last_message_received = -1
@@ -433,7 +433,7 @@ class ChatboxConnector:
                 continue
 
             # cache the nickname
-            self.usernames_to_user_ids[nick.lower()] = user_id
+            self.lowercase_usernames_to_user_id_name_pairs[nick.lower()] = (user_id, nick)
 
             message_body = tds[1].decode_contents().strip()
             message = ChatboxMessage(message_id, user_id, nick, message_body, timestamp,
@@ -531,14 +531,23 @@ class ChatboxConnector:
         """
         Returns the user ID of the user with the given name.
         :return: The user ID of the user with the given name, or -1 if the user does not exist.
+        :rtype: int
+        """
+        result = self.get_user_id_and_nickname_for_uncased_name(username)
+        return result[0] if result is not None else -1
+
+    def get_user_id_and_nickname_for_uncased_name(self, username):
+        """
+        Returns the user ID and real nickname of the user with the given case-insensitive name.
+        :rtype: (int, str)|None
         """
         lower_username = username.lower()
-        if lower_username in self.usernames_to_user_ids:
-            return self.usernames_to_user_ids[lower_username]
+        if lower_username in self.lowercase_usernames_to_user_id_name_pairs:
+            return self.lowercase_usernames_to_user_id_name_pairs[lower_username]
 
         if len(username) < 3:
             # vB doesn't allow usernames shorter than three characters
-            return -1
+            return None
 
         result_dom = self.ajax("usersearch", {"fragment": username})
         for child in result_dom.documentElement.childNodes:
@@ -556,13 +565,14 @@ class ChatboxConnector:
                 if textChild.nodeType == child.TEXT_NODE:
                     username_text += textChild.data
 
-            if username == username_text:
+            if username.lower() == username_text.lower():
                 # cache!
-                self.usernames_to_user_ids[lower_username] = user_id
-                return int(user_id)
+                self.lowercase_usernames_to_user_id_name_pairs[lower_username] = \
+                    (user_id, username_text)
+                return (user_id, username_text)
 
         # not found
-        return -1
+        return None
 
 if __name__ == '__main__':
     def message_received(message):

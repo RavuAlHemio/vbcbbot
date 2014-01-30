@@ -39,13 +39,16 @@ class Messenger(Module):
             else:
                 send_it = True
                 try:
-                    if self.connector.get_user_id_for_name(target_name) == -1:
+                    user_info = \
+                        self.connector.get_user_id_and_nickname_for_uncased_name(target_name)
+                    if user_info is None:
                         send_it = False
                 except chatbox_connector.TransferError:
-                    # send it
-                    pass
+                    send_it = False
 
-                if send_it:
+                if not send_it:
+                    self.connector.send_message("Sorry, I don't know \"{0}\".".format(target_name))
+                else:
                     logger.debug("{0} sending message {1} to {2}".format(
                         repr(message.user_name), repr(send_body), repr(target_name)
                     ))
@@ -67,7 +70,7 @@ class Messenger(Module):
                     else:
                         sent_template = "Aye-aye! I\u2019ll deliver your message to " + \
                             "[i][noparse]{0}[/noparse][/i] next time I see \u2019em!"
-                        self.connector.send_message(sent_template.format(target_name))
+                        self.connector.send_message(sent_template.format(user_info[1]))
 
         if self.connector.should_stfu():
             # don't bother just yet
