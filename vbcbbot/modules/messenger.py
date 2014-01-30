@@ -23,20 +23,23 @@ class Messenger(Module):
         Called by the communicator when a new message has been received.
         :type message: vbcbbot.chatbox_connector.ChatboxMessage
         """
+        lower_sender_name = message.user_name.lower()
+
         # parse and strip
         body = message.decompiled_body().strip()
 
         if body.startswith("!msg "):
             colon_index = body.find(":")
-            nickname = body[len("!msg "):colon_index].strip()
+            target_name = body[len("!msg "):colon_index].strip()
+            lower_target_name = target_name.lower()
             send_body = body[colon_index+1:].strip()
 
-            if nickname == self.connector.username:
+            if lower_target_name == self.connector.username.lower():
                 self.connector.send_message("Sorry, I don't deliver to myself!")
             else:
                 send_it = True
                 try:
-                    if self.connector.get_user_id_for_name(nickname) == -1:
+                    if self.connector.get_user_id_for_name(target_name) == -1:
                         send_it = False
                 except chatbox_connector.TransferError:
                     # send it
@@ -44,18 +47,19 @@ class Messenger(Module):
 
                 if send_it:
                     logger.debug("{0} sending message {1} to {2}".format(
-                        repr(message.user_name), repr(send_body), repr(nickname)
+                        repr(message.user_name), repr(send_body), repr(target_name)
                     ))
 
                     cursor = self.database.cursor()
                     cursor.execute(
-                        "INSERT INTO messages (timestamp, sender, recipient, body) "
+                        "INSERT INTO messages "
+                        "(timestamp, sender_original, recipient_folded, body) "
                         "VALUES (?, ?, ?, ?)",
-                        (message.timestamp, message.user_name, nickname, send_body)
+                        (message.timestamp, message.user_name, lower_target_name, send_body)
                     )
                     self.database.commit()
 
-                    if nickname == message.user_name:
+                    if lower_target_name == lower_sender_name:
                         self.connector.send_message(
                             "Talking to ourselves? Well, no skin off my back. I\u2019ll deliver "
                             "your message to you right away. ;)"
@@ -63,7 +67,7 @@ class Messenger(Module):
                     else:
                         sent_template = "Aye-aye! I\u2019ll deliver your message to " + \
                             "[i][noparse]{0}[/noparse][/i] next time I see \u2019em!"
-                        self.connector.send_message(sent_template.format(nickname))
+                        self.connector.send_message(sent_template.format(target_name))
 
         if self.connector.should_stfu():
             # don't bother just yet
@@ -72,8 +76,9 @@ class Messenger(Module):
         # check if the sender should get any messages
         cursor = self.database.cursor()
         cursor.execute(
-            "SELECT timestamp, sender, body FROM messages WHERE recipient=? ORDER BY timestamp ASC",
-            (message.user_name,)
+            "SELECT timestamp, sender_original, body FROM messages "
+            "WHERE recipient_folded=? ORDER BY timestamp ASC",
+            (lower_sender_name,)
         )
         messages = []
         for bin_row in cursor:
@@ -115,7 +120,7 @@ class Messenger(Module):
 
         # delete those messages
         cursor = self.database.cursor()
-        cursor.execute("DELETE FROM messages WHERE recipient=?", (message.user_name,))
+        cursor.execute("DELETE FROM messages WHERE recipient_folded=?", (lower_sender_name,))
         self.database.commit()
         cursor.close()
 
@@ -140,13 +145,13 @@ class Messenger(Module):
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS messages (
             timestamp INT NOT NULL,
-            sender TEXT NOT NULL,
-            recipient TEXT NOT NULL,
+            sender_original TEXT NOT NULL,
+            recipient_folded TEXT NOT NULL,
             body TEXT NOT NULL
         )
         """)
         cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_messages_recipient_timestamp
-        ON messages (recipient, timestamp)
+        ON messages (recipient_folded, timestamp ASC)
         """)
         self.database.commit()
