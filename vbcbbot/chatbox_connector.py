@@ -66,9 +66,9 @@ def ajax_url_encode_string(string):
     """
     Encode the string in the escape method used by vB AJAX.
     :param string: The string to send.
-    :return: The bytes representing the message in a format understood by vB AJAX.
+    :return: The string escaped correctly for vB AJAX.
     """
-    ret = b""
+    ret = ""
     for c in string:
         if c in url_safe_characters:
             ret += c
