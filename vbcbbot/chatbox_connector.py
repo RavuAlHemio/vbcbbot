@@ -594,6 +594,9 @@ class ChatboxConnector:
                 if textChild.nodeType in (child.TEXT_NODE, child.CDATA_SECTION_NODE):
                     username_text += textChild.data
 
+            # unescape entities
+            username_text = bs4.BeautifulSoup(username_text, "html.parser").text
+
             if username.lower() == username_text.lower():
                 # cache!
                 self.lowercase_usernames_to_user_id_name_pairs[lower_username] = \
