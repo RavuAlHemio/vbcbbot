@@ -77,7 +77,7 @@ def ajax_url_encode_string(string):
         else:
             # escape it as UTF-16 with %u
             utf16_bytes = c.encode("utf-16be")
-            for i in len(utf16_bytes)//2:
+            for i in range(len(utf16_bytes)//2):
                 top_byte = utf16_bytes[2*i + 0]
                 bottom_byte = utf16_bytes[2*i + 1]
                 ret += "%u{0:02X}{1:02X}".format(top_byte, bottom_byte)
