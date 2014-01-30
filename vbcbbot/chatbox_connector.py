@@ -319,7 +319,6 @@ class ChatboxConnector:
             encoded_value = ajax_url_encode_string(value)
             post_pieces.append("{0}={1}".format(encoded_key, encoded_value))
         post_string = "&".join(post_pieces)
-        logger.debug("POST string: {0}".format(repr(post_string)))
         post_data = post_string.encode("us-ascii")
 
         with self.cookie_jar_lid:
@@ -592,7 +591,7 @@ class ChatboxConnector:
 
             username_text = ""
             for textChild in child.childNodes:
-                if textChild.nodeType == child.TEXT_NODE:
+                if textChild.nodeType in (child.TEXT_NODE, child.CDATA_SECTION_NODE):
                     username_text += textChild.data
 
             if username.lower() == username_text.lower():
