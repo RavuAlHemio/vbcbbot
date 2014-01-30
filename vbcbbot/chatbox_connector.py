@@ -62,6 +62,28 @@ def filter_combining_mark_clusters(string, maximum_marks=4):
     return ret
 
 
+def ajax_url_encode_string(string):
+    """
+    Encode the string in the escape method used by vB AJAX.
+    :param string: The string to send.
+    :return: The bytes representing the message in a format understood by vB AJAX.
+    """
+    ret = b""
+    for c in key:
+        if c in url_safe_characters:
+            ret += c
+        elif ord(c) <= 0x7f:
+            ret += "%{0:02x}".format(c)
+        else:
+            # escape it as UTF-16 with %u
+            utf16_bytes = c.encode("utf-16be")
+            for i in len(utf16_bytes)//2:
+                top_byte = utf16_bytes[2*i + 0]
+                bottom_byte = utf16_bytes[2*i + 1]
+                ret += "%u{0:02X}{1:02X}".format(top_byte, bottom_byte)
+    return ret
+
+
 class TransferError(Exception):
     """An error when sending a message to or receiving a message from the chatbox."""
     pass
@@ -290,7 +312,14 @@ class ChatboxConnector:
         }
         if parameters is not None:
             post_values.update(parameters)
-        post_data = up.urlencode(post_values, encoding="utf-8").encode("us-ascii")
+
+        post_pieces = []
+        for (key, value) in post_values.items():
+            encoded_key = ajax_url_encode_string(key)
+            encoded_value = ajax_url_encode_string(value)
+            post_pieces.append("{0}={1}".format(encoded_key, encoded_value))
+        post_string = "&".join(post_pieces)
+        post_data = post_string.encode("us-ascii")
 
         with self.cookie_jar_lid:
             response = self.url_opener.open(self.ajax_url, data=post_data, timeout=self.timeout)
