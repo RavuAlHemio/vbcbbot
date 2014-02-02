@@ -6,7 +6,7 @@ import time
 import tkinter
 import tkinter.scrolledtext
 
-__author__ = 'hosek'
+__author__ = 'ondra'
 
 
 def format_soup(soup):
