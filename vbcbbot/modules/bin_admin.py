@@ -88,7 +88,7 @@ class BinAdmin(Module):
         """Called by the communicator when a new message has been received."""
 
         # extract text and strip
-        body = message.body_soup().text.strip()
+        body = message.decompiled_body().strip()
 
         if body == "!tonnen":
             logger.debug("bin overview request from " + message.user_name)
