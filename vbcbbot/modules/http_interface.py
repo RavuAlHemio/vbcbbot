@@ -6,7 +6,7 @@ import http.server
 import logging
 import threading
 import time
-from urllib.parse import unquote_plus
+from urllib.parse import unquote_plus, urljoin
 
 __author__ = 'ondra'
 
@@ -34,22 +34,33 @@ def html_escape(s, escape_quotes=True, escape_apostrophes=False):
     return ret
 
 
-def dom_to_html(body_dom):
+def dom_to_html(body_dom, base_url):
     ret = ""
     for node in body_dom:
         if node.is_element():
             if node.name == "url":
                 ret += '<a href="{url}">{inside}</a>'.format(
-                    url=html_escape(node.attribute_value), inside=dom_to_html(node.children)
+                    url=html_escape(urljoin(base_url, node.attribute_value)),
+                    inside=dom_to_html(node.children, base_url)
                 )
             elif node.name == "icon":
-                ret += '<img src="{src}" />'.format(src=html_escape(node.children[0]))
+                ret += '<img src="{src}" />'.format(
+                    src=html_escape(urljoin(base_url, node.children[0]))
+                )
             elif node.name in "biu":
-                ret += '<{n}>{inside}</{n}>'.format(n=node.name, inside=dom_to_html(node.children))
+                ret += '<{n}>{inside}</{n}>'.format(
+                    n=node.name, inside=dom_to_html(node.children, base_url)
+                )
+            elif node.name == "strike":
+                ret += '<span style="text-decoration:line-through">{inside}</span>'.format(
+                    inside=dom_to_html(node.children, base_url)
+                )
             else:
                 ret += html_escape(node)
         elif isinstance(node, SmileyText):
-            ret += '<img src="{src}" alt="{smiley}" />'.format(src=node.smiley_url, smiley=node.text)
+            ret += '<img src="{src}" alt="{smiley}" />'.format(
+                src=html_escape(urljoin(base_url, node.smiley_url)), smiley=html_escape(node.text)
+            )
         else:
             ret += html_escape(node)
     return ret
@@ -57,6 +68,7 @@ def dom_to_html(body_dom):
 
 class RequestHandler(http.server.BaseHTTPRequestHandler):
     http_interface = None
+    """:type: HttpInterface"""
 
     def check_auth(self):
         username_colon_password = "{0}:{1}".format(
@@ -97,7 +109,10 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                         message_id=html_escape(message.id), sender_id=html_escape(message.user_id),
                         sender_name=html_escape(message.user_name),
                         time=time.strftime("%Y-%m-%d %H:%M", time.localtime(message.timestamp)),
-                        body=dom_to_html(message.decompiled_dom())
+                        body=dom_to_html(
+                            message.decompiled_dom(),
+                            self.http_interface.connector.base_url
+                        )
                     )
                     self.wfile.write(output_string.encode("utf-8"))
         elif self.path[1:] in self.http_interface.allowed_files:
