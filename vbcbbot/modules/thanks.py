@@ -41,6 +41,7 @@ class Thanks(Module):
                 self.connector.send_message("You are so full of yourself, {0}.".format(
                     message.user_name
                 ))
+                return
 
             try:
                 user_info = self.connector.get_user_id_and_nickname_for_uncased_name(nickname)
