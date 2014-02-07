@@ -1,3 +1,4 @@
+from vbcbbot.html_decompiler import SmileyText
 from vbcbbot.modules import Module
 
 import base64
@@ -31,6 +32,26 @@ def html_escape(s, escape_quotes=True, escape_apostrophes=False):
         else:
             ret += c
     return ret
+
+
+def dom_to_html(body_dom):
+    ret = ""
+    for node in body_dom:
+        if node.is_element():
+            if node.name == "url":
+                ret += '<a href="{url}">{inside}</a>'.format(
+                    url=html_escape(node.attribute_value), inside=dom_to_html(node.children)
+                )
+            elif node.name == "icon":
+                ret += '<img src="{src}" />'.format(src=html_escape(node.children[0]))
+            elif node.name in "biu":
+                ret += '<{n}>{inside}</{n}>'.format(n=node.name, inside=dom_to_html(node.children))
+            else:
+                ret += html_escape(node)
+        elif isinstance(node, SmileyText):
+            ret += '<img src="{src}" alt="{smiley}" />'.format(src=node.smiley_url, smiley=node.text)
+        else:
+            ret += html_escape(node)
 
 
 class RequestHandler(http.server.BaseHTTPRequestHandler):
@@ -75,7 +96,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                         message_id=html_escape(message.id), sender_id=html_escape(message.user_id),
                         sender_name=html_escape(message.user_name),
                         time=time.strftime("%Y-%m-%d %H:%M", time.localtime(message.timestamp)),
-                        body=html_escape(message.decompiled_body())
+                        body=dom_to_html(message.decompiled_dom())
                     )
                     self.wfile.write(output_string.encode("utf-8"))
         elif self.path[1:] in self.http_interface.allowed_files:

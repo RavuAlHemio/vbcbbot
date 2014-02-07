@@ -71,6 +71,15 @@ class Text(Node):
         return True
 
 
+class SmileyText(Text):
+    def __init__(self, text, smiley_url=None):
+        Text.__init__(self, text)
+        self.smiley_url = smiley_url
+
+    def __repr__(self):
+        return "SmileyText({0}, {1})".format(repr(self.text), repr(self.smiley_url))
+
+
 def intercalate_text_and_matches_as_element(regex, string, element_tag="noparse"):
     ret = []
     last_unmatched_start_index = 0
@@ -127,7 +136,7 @@ class HtmlDecompiler:
                 if child.name == "img" and child.has_attr("src"):
                     if child.attrs['src'] in self.smiley_url_to_symbol:
                         # it's a smiley
-                        ret.append(Text(self.smiley_url_to_symbol[child.attrs['src']]))
+                        ret.append(SmileyText(self.smiley_url_to_symbol[child.attrs['src']], child.attrs['src']))
                     elif self.tex_prefix is not None and \
                             child.attrs['src'].startswith(self.tex_prefix):
                         # TeX

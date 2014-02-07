@@ -117,6 +117,7 @@ class ChatboxMessage:
         """
         Return a new string I/O object for the body of the message.
         :return: A new string I/O object for the body of the message.
+        :rtype: io.StringIO
         """
         return io.StringIO(self.body)
 
@@ -124,15 +125,25 @@ class ChatboxMessage:
         """
         Return a new BeautifulSoup instance for the body of the message.
         :return: A new BeautifulSoup instance for the body of the message.
+        :rtype: bs4.BeautifulSoup
         """
         return bs4.BeautifulSoup(self.body_io(), "html.parser")
+
+    def decompiled_dom(self):
+        """
+        Return the Document Object Model of the message decompiled using HtmlDecompiler.
+        :return: The DOM of the message decompiled using HtmlDecompiler.
+        :rtype: list[vbcbbot.html_decompiler.Node]
+        """
+        return self.html_decompiler.decompile_soup(self.body_soup())
 
     def decompiled_body(self):
         """
         Return the body of the message decompiled using HtmlDecompiler.
         :return: The body of the message decompiled using HtmlDecompiler.
+        :rtype: str
         """
-        return "".join([str(e) for e in self.html_decompiler.decompile_soup(self.body_soup())])
+        return "".join([str(e) for e in self.decompiled_dom()])
 
 
 class ChatboxConnector:
