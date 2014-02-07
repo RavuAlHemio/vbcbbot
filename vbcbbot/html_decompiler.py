@@ -80,6 +80,23 @@ class SmileyText(Text):
         return "SmileyText({0}, {1})".format(repr(self.text), repr(self.smiley_url))
 
 
+def join_adjacent_text_nodes(dom_list):
+    text_nodes_to_join = []
+    ret = []
+    for item in dom_list:
+        if type(item) == Text:
+            text_nodes_to_join.append(item)
+        else:
+            texts = [n.text for n in text_nodes_to_join]
+            ret.append(Text("".join(texts)))
+            ret.append(item)
+            text_nodes_to_join = []
+    if len(text_nodes_to_join) > 0:
+        texts = [n.text for n in text_nodes_to_join]
+        ret.append(Text("".join(texts)))
+    return ret
+
+
 def intercalate_text_and_matches_as_element(regex, string, element_tag="noparse"):
     ret = []
     last_unmatched_start_index = 0
@@ -269,7 +286,7 @@ class HtmlDecompiler:
                 )
                 ret += escaped_children
 
-        return ret
+        return join_adjacent_text_nodes(ret)
 
 if __name__ == '__main__':
     import bs4
