@@ -52,6 +52,7 @@ def dom_to_html(body_dom):
             ret += '<img src="{src}" alt="{smiley}" />'.format(src=node.smiley_url, smiley=node.text)
         else:
             ret += html_escape(node)
+    return ret
 
 
 class RequestHandler(http.server.BaseHTTPRequestHandler):
