@@ -45,7 +45,7 @@ def dom_to_html(body_dom, base_url):
                 )
             elif node.name == "icon":
                 ret += '<img src="{src}" />'.format(
-                    src=html_escape(urljoin(base_url, node.children[0]))
+                    src=html_escape(urljoin(base_url, node.children[0].text))
                 )
             elif node.name in "biu":
                 ret += '<{n}>{inside}</{n}>'.format(
