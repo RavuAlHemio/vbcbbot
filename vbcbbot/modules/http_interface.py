@@ -39,12 +39,12 @@ def dom_to_html(body_dom, base_url):
     for node in body_dom:
         if node.is_element():
             if node.name == "url":
-                ret += '<a href="{url}">{inside}</a>'.format(
+                ret += '<a class="url" href="{url}">{inside}</a>'.format(
                     url=html_escape(urljoin(base_url, node.attribute_value)),
                     inside=dom_to_html(node.children, base_url)
                 )
             elif node.name == "icon":
-                ret += '<img src="{src}" />'.format(
+                ret += '<img class="icon" src="{src}" />'.format(
                     src=html_escape(urljoin(base_url, node.children[0].text))
                 )
             elif node.name in "biu":
@@ -52,13 +52,13 @@ def dom_to_html(body_dom, base_url):
                     n=node.name, inside=dom_to_html(node.children, base_url)
                 )
             elif node.name == "strike":
-                ret += '<span style="text-decoration:line-through">{inside}</span>'.format(
+                ret += '<span class="strike" style="text-decoration:line-through">{inside}</span>'.format(
                     inside=dom_to_html(node.children, base_url)
                 )
             else:
                 ret += html_escape(node)
         elif isinstance(node, SmileyText):
-            ret += '<img src="{src}" alt="{smiley}" />'.format(
+            ret += '<img class="smiley" src="{src}" alt="{smiley}" />'.format(
                 src=html_escape(urljoin(base_url, node.smiley_url)), smiley=html_escape(node.text)
             )
         else:
