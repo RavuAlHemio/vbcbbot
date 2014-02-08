@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8" />
+<title>Chatbox: edit message {message_id}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<style type="text/css">
+body {{ font-family: sans-serif; }}
+#messageinput, #sendbutton {{ box-sizing: border-box; width: 100%; border: 1px solid #eee; border-radius: 15px; height: 30px; padding-left: 10px; padding-right: 10px; margin: 0px; }}
+#messageinput {{ background-color: #fff; }}
+#sendbutton {{ background-color: #eee; }}
+</style>
+</head>
+<body>
+<form action="/editmessage" method="POST">
+<input type="hidden" name="message_id" value="{message_id}" />
+<p><input type="text" name="new_body" id="messageinput" /></p>
+<p><button type="submit" id="sendbutton">Edit</button></p>
+</form>
+</body>
+</html>
