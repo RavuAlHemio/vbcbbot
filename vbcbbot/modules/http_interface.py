@@ -121,12 +121,17 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
             with self.http_interface.message_lock:
                 for message in self.http_interface.messages:
+                    sender_info_url = urljoin(
+                        self.http_interface.connector.base_url,
+                        "member.php?u={0}".format(message.user_id)
+                    )
                     output_string = self.http_interface.post_template.format(
                         message_id=html_escape(message.id), sender_id=html_escape(message.user_id),
                         sender_name=dom_to_html(
                             message.decompiled_user_name_dom(),
                             self.http_interface.connector.base_url
                         ),
+                        sender_info_url=html_escape(sender_info_url),
                         time=time.strftime("%Y-%m-%d %H:%M", time.localtime(message.timestamp)),
                         body=dom_to_html(
                             message.decompiled_body_dom(),
