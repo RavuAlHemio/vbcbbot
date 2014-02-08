@@ -111,10 +111,13 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 for message in self.http_interface.messages:
                     output_string = self.http_interface.post_template.format(
                         message_id=html_escape(message.id), sender_id=html_escape(message.user_id),
-                        sender_name=html_escape(message.user_name),
+                        sender_name=dom_to_html(
+                            message.decompiled_user_name_dom(),
+                            self.http_interface.connector.base_url
+                        ),
                         time=time.strftime("%Y-%m-%d %H:%M", time.localtime(message.timestamp)),
                         body=dom_to_html(
-                            message.decompiled_dom(),
+                            message.decompiled_body_dom(),
                             self.http_interface.connector.base_url
                         )
                     )
