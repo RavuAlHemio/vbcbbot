@@ -91,19 +91,20 @@ class TransferError(Exception):
 
 class ChatboxMessage:
     """A message posted into the chatbox."""
-    def __init__(self, message_id, user_id, user_name, body, timestamp=None, html_decompiler=None):
+    def __init__(self, message_id, user_id, user_name_body, body, timestamp=None,
+                 html_decompiler=None):
         """
         Initialize a new message.
         :param message_id: The ID of the message.
         :param user_id: The ID of the user who posted this message.
-        :param user_name: The name of the user who posted this message.
+        :param user_name_body: The name of the user who posted this message, with tags.
         :param body: The body of the message (a HTML string).
         :param timestamp: The time at which the message was posted.
         :return: The new message.
         """
         self.id = message_id
         self.user_id = user_id
-        self.user_name = user_name
+        self.user_name_body = user_name_body
         self.body = body
         if timestamp is None:
             timestamp = time.time()
@@ -112,6 +113,46 @@ class ChatboxMessage:
             self.html_decompiler = HtmlDecompiler()
         else:
             self.html_decompiler = html_decompiler
+
+    def user_name_io(self):
+        """
+        Return a new string I/O object for the username.
+        :return: A new string I/O object for the username.
+        :rtype: io.StringIO
+        """
+        return io.StringIO(self.user_name_body)
+
+    def user_name_soup(self):
+        """
+        Return a new BeautifulSoup instance for the username.
+        :return: A new BeautifulSoup instance for the username.
+        :rtype: bs4.BeautifulSoup
+        """
+        return bs4.BeautifulSoup(self.user_name_io(), "html.parser")
+
+    @property
+    def user_name(self):
+        """
+        The name of the user who posted this message.
+        :rtype: str
+        """
+        return self.user_name_soup().text
+
+    def decompiled_user_name_dom(self):
+        """
+        Return the Document Oblect Model of the username decompiled using HtmlDecompiler.
+        :return: The DOM of the username decompiled using HtmlDecompiler.
+        :rtype: list[vbcbbot.html_decompiler.Node]
+        """
+        return self.html_decompiler.decompile_soup(self.user_name_soup())
+
+    def decompiled_user_name(self):
+        """
+        Return the username decompiled using HtmlDecompiler.
+        :return: The username decompiled using HtmlDecompiler.
+        :rtype: str
+        """
+        return "".join([str(e) for e in self.decompiled_user_name_dom()])
 
     def body_io(self):
         """
@@ -129,10 +170,10 @@ class ChatboxMessage:
         """
         return bs4.BeautifulSoup(self.body_io(), "html.parser")
 
-    def decompiled_dom(self):
+    def decompiled_body_dom(self):
         """
-        Return the Document Object Model of the message decompiled using HtmlDecompiler.
-        :return: The DOM of the message decompiled using HtmlDecompiler.
+        Return the Document Object Model of the message body decompiled using HtmlDecompiler.
+        :return: The DOM of the message body decompiled using HtmlDecompiler.
         :rtype: list[vbcbbot.html_decompiler.Node]
         """
         return self.html_decompiler.decompile_soup(self.body_soup())
@@ -143,7 +184,7 @@ class ChatboxMessage:
         :return: The body of the message decompiled using HtmlDecompiler.
         :rtype: str
         """
-        return "".join([str(e) for e in self.decompiled_dom()])
+        return "".join([str(e) for e in self.decompiled_body_dom()])
 
 
 class ChatboxConnector:
@@ -463,20 +504,22 @@ class ChatboxConnector:
                     pass
 
             # get the nickname
-            nick = None
+            nick_element = None
             for link_element in meta_td.find_all("a", href=True):
                 if self.user_id_piece in link_element["href"]:
-                    nick = link_element.text
+                    nick_element = link_element
 
-            if nick is None:
+            if nick_element is None:
                 # bah, humbug
                 continue
+
+            nick = nick_element.text
 
             # cache the nickname
             self.lowercase_usernames_to_user_id_name_pairs[nick.lower()] = (user_id, nick)
 
             message_body = tds[1].decode_contents().strip()
-            message = ChatboxMessage(message_id, user_id, nick, message_body, timestamp,
+            message = ChatboxMessage(message_id, user_id, nick_element, message_body, timestamp,
                                      self.html_decompiler)
 
             if message_id in self.old_message_ids_to_bodies:
