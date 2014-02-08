@@ -514,12 +514,13 @@ class ChatboxConnector:
                 continue
 
             nick = nick_element.text
+            nick_code = "".join([str(c) for c in nick_element.children])
 
             # cache the nickname
             self.lowercase_usernames_to_user_id_name_pairs[nick.lower()] = (user_id, nick)
 
             message_body = tds[1].decode_contents().strip()
-            message = ChatboxMessage(message_id, user_id, nick_element, message_body, timestamp,
+            message = ChatboxMessage(message_id, user_id, nick_code, message_body, timestamp,
                                      self.html_decompiler)
 
             if message_id in self.old_message_ids_to_bodies:
