@@ -57,6 +57,7 @@ def dom_to_html(body_dom, base_url):
                 )
             elif node.name == "color":
                 ret += '<span class="color" style="color:{color}">{inside}</span>'.format(
+                    color=node.attribute_value,
                     inside=dom_to_html(node.children, base_url)
                 )
             else:
