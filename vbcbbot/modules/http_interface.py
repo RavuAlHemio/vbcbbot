@@ -55,6 +55,10 @@ def dom_to_html(body_dom, base_url):
                 ret += '<span class="strike" style="text-decoration:line-through">{inside}</span>'.format(
                     inside=dom_to_html(node.children, base_url)
                 )
+            elif node.name == "color":
+                ret += '<span class="color" style="color:{color}">{inside}</span>'.format(
+                    inside=dom_to_html(node.children, base_url)
+                )
             else:
                 ret += html_escape(node)
         elif isinstance(node, SmileyText):
