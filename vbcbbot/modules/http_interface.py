@@ -1,5 +1,6 @@
 from vbcbbot.html_decompiler import SmileyText
 from vbcbbot.modules import Module
+from vbcbbot.utils import RegexMatcher
 
 import base64
 import http.server
@@ -11,6 +12,7 @@ from urllib.parse import unquote_plus, urljoin
 __author__ = 'ondra'
 
 logger = logging.getLogger("vbcbbot.modules.http_interface")
+editor_regex = RegexMatcher("^/editor/([1-9][0-9]*)$")
 
 
 def html_escape(s, escape_quotes=True, escape_apostrophes=False):
@@ -92,21 +94,30 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
         return True
 
+    def send_ok_html_response(self, body_bytes):
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body_bytes)))
+        self.end_headers()
+        self.wfile.write(body_bytes)
+
+    def send_plaintext_response(self, http_code, body_bytes):
+        self.send_response(http_code)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(body_bytes)))
+        self.end_headers()
+        self.wfile.write(body_bytes)
+
     def do_GET(self):
         if not self.check_auth():
             return
 
         if self.path == "/":
             # output the chatbox form
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(self.http_interface.page_template.encode("utf-8"))
+            self.send_ok_html_response(self.http_interface.page_template.encode("utf-8"))
         elif self.path == "/messages":
             # output the messages as a chunk
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.end_headers()
+            all_messages = b""
 
             with self.http_interface.message_lock:
                 for message in self.http_interface.messages:
@@ -122,35 +133,68 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                             self.http_interface.connector.base_url
                         )
                     )
-                    self.wfile.write(output_string.encode("utf-8"))
-        elif self.path[1:] in self.http_interface.allowed_files:
-            # output the file
-            self.send_response(200)
-            self.end_headers()
-            with open(self.path[1:], "rb") as f:
-                self.wfile.write(f.read())
+                    all_messages += output_string.encode("utf-8")
+
+            self.send_ok_html_response(all_messages)
+
+        elif editor_regex.match(self.path):
+            # editor
+            message_number = int(editor_regex.last_match.group(1))
+            message_to_edit = None
+
+            # find that message
+            with self.http_interface.message_lock:
+                for message in self.http_interface.messages:
+                    if message.id == message_number:
+                        message_to_edit = message
+                        break
+
+            current_message_body = ""
+            if message_to_edit is not None:
+                current_message_body = message_to_edit.decompiled_body()
+
+            output_string = self.http_interface.editor_template.format(
+                message_id=html_escape(message_number), body=html_escape(current_message_body)
+            )
+            output_bytes = output_string.encode("utf-8")
+
+            self.send_ok_html_response(output_bytes)
+
         else:
-            self.send_response(404)
-            self.send_header("Content-Type", "text/plain; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(b"No such file or directory!")
+            body = None
+            if self.path[1:] in self.http_interface.allowed_files:
+                try:
+                    with open(self.path[1:], "rb") as f:
+                        body = f.read()
+                except FileNotFoundError:
+                    # body remains None
+                    pass
+
+            if body is None:
+                self.send_plaintext_response(404, b"No such file or directory!")
+            else:
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
 
     def do_POST(self):
         if not self.check_auth():
             return
 
+        length = int(self.headers["Content-Length"])
+        post_body_bytes = self.rfile.read(length)
+        post_body = post_body_bytes.decode("utf-8")
+
+        values = {}
+        for key_val_string in post_body.split("&"):
+            key_val = key_val_string.split("=", 1)
+            if len(key_val) == 2:
+                values[key_val[0]] = unquote_plus(key_val[1])
+
         if self.path == "/postmessage":
-            length = int(self.headers["Content-Length"])
-            post_body_bytes = self.rfile.read(length)
-            post_body = post_body_bytes.decode("utf-8")
-
-            values = {}
-            for key_val_string in post_body.split("&"):
-                key_val = key_val_string.split("=", 1)
-                if len(key_val) == 2:
-                    values[key_val[0]] = unquote_plus(key_val[1])
-
-            if "message" not in values:
+            if "message" not in values or len(values["message"]) == 0:
+                self.send_plaintext_response(400, b"You must specify the message body.")
                 return
 
             self.http_interface.connector.send_message(values["message"])
@@ -158,6 +202,23 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_response(303)
             self.send_header("Location", "/")
             self.end_headers()
+
+        elif self.path == "/editmessage":
+            if "message_id" not in values or len(values["message_id"]) == 0 \
+                    or "new_body" not in values or len(values["new_body"]) == 0:
+                self.send_plaintext_response(
+                    400, b"You must specify the message ID and the new body."
+                )
+            elif not values["message_id"].isnumeric():
+                self.send_plaintext_response(400, b"Message ID must be numeric.")
+            else:
+                self.http_interface.connector.edit_message(
+                    int(values["message_id"]), values["new_body"]
+                )
+
+                self.send_response(303)
+                self.send_header("Location", "/")
+                self.end_headers()
 
 
 class HttpInterface(Module):
@@ -201,6 +262,9 @@ class HttpInterface(Module):
 
         with open(config_section["post template"], "r") as f:
             self.post_template = f.read()
+
+        with open(config_section["editor template"], "r") as f:
+            self.editor_template = f.read()
 
         self.username = config_section["username"]
         self.password = config_section["password"]
