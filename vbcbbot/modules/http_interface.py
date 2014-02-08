@@ -233,6 +233,17 @@ class HttpInterface(Module):
             while len(self.messages) > self.backlog:
                 self.messages.pop()
 
+    def message_modified(self, modified_message):
+        """Called by the communicator when a message has been edited."""
+
+        # find and change!
+        with self.message_lock:
+            for i in range(len(self.messages)):
+                if self.messages[i].id == modified_message.id:
+                    # update!
+                    self.messages[i] = modified_message
+                    break
+
     def __init__(self, connector, config_section):
         """
         Create a new HTTP interface.
