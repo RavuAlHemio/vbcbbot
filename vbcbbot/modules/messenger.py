@@ -4,7 +4,6 @@ from vbcbbot.modules import Module
 import logging
 import sqlite3
 import time
-import xml.dom as dom
 
 __author__ = 'ondra'
 
@@ -18,6 +17,58 @@ class Messenger(Module):
         # don't do anything
         return
 
+    def potential_message_send(self, message, body, lower_sender_name):
+        if not body.startswith("!msg "):
+            return
+
+        colon_index = body.find(":")
+        if colon_index == -1:
+            self.connector.send_message(
+                "You need to put a colon between the nickname and the message!"
+            )
+            return
+
+        target_name = body[len("!msg "):colon_index].strip()
+        lower_target_name = target_name.lower()
+        send_body = body[colon_index+1:].strip()
+
+        if lower_target_name == self.connector.username.lower():
+            self.connector.send_message("Sorry, I don\u2019t deliver to myself!")
+            return
+
+        user_info = None
+        try:
+            user_info = self.connector.get_user_id_and_nickname_for_uncased_name(target_name)
+        except chatbox_connector.TransferError:
+            pass
+
+        if user_info is None:
+            self.connector.send_message("Sorry, I don\u2019t know \u201c{0}\u201d.".format(target_name))
+            return
+
+        logger.debug("{0} sending message {1} to {2}".format(
+            repr(message.user_name), repr(send_body), repr(target_name)
+        ))
+
+        cursor = self.database.cursor()
+        cursor.execute(
+            "INSERT INTO messages "
+            "(timestamp, sender_original, recipient_folded, body) "
+            "VALUES (?, ?, ?, ?)",
+            (message.timestamp, message.user_name, lower_target_name, send_body)
+        )
+        self.database.commit()
+
+        if lower_target_name == lower_sender_name:
+            self.connector.send_message(
+                "Talking to ourselves? Well, no skin off my back. I\u2019ll deliver "
+                "your message to you right away. ;)"
+            )
+        else:
+            sent_template = "Aye-aye! I\u2019ll deliver your message to " + \
+                "[i][noparse]{0}[/noparse][/i] next time I see \u2019em!"
+            self.connector.send_message(sent_template.format(user_info[1]))
+
     def message_received(self, message):
         """
         Called by the communicator when a new message has been received.
@@ -28,49 +79,8 @@ class Messenger(Module):
         # parse and strip
         body = message.decompiled_body().strip()
 
-        if body.startswith("!msg "):
-            colon_index = body.find(":")
-            target_name = body[len("!msg "):colon_index].strip()
-            lower_target_name = target_name.lower()
-            send_body = body[colon_index+1:].strip()
-
-            if lower_target_name == self.connector.username.lower():
-                self.connector.send_message("Sorry, I don't deliver to myself!")
-            else:
-                send_it = True
-                try:
-                    user_info = \
-                        self.connector.get_user_id_and_nickname_for_uncased_name(target_name)
-                    if user_info is None:
-                        send_it = False
-                except chatbox_connector.TransferError:
-                    send_it = False
-
-                if not send_it:
-                    self.connector.send_message("Sorry, I don't know \"{0}\".".format(target_name))
-                else:
-                    logger.debug("{0} sending message {1} to {2}".format(
-                        repr(message.user_name), repr(send_body), repr(target_name)
-                    ))
-
-                    cursor = self.database.cursor()
-                    cursor.execute(
-                        "INSERT INTO messages "
-                        "(timestamp, sender_original, recipient_folded, body) "
-                        "VALUES (?, ?, ?, ?)",
-                        (message.timestamp, message.user_name, lower_target_name, send_body)
-                    )
-                    self.database.commit()
-
-                    if lower_target_name == lower_sender_name:
-                        self.connector.send_message(
-                            "Talking to ourselves? Well, no skin off my back. I\u2019ll deliver "
-                            "your message to you right away. ;)"
-                        )
-                    else:
-                        sent_template = "Aye-aye! I\u2019ll deliver your message to " + \
-                            "[i][noparse]{0}[/noparse][/i] next time I see \u2019em!"
-                        self.connector.send_message(sent_template.format(user_info[1]))
+        # process potential message sends
+        self.potential_message_send(message, body, lower_sender_name)
 
         if self.connector.should_stfu():
             # don't bother just yet
