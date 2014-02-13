@@ -150,7 +150,7 @@ class BinAdmin(Module):
 
             self.connector.send_message("Tonne entleert.")
 
-        elif body == "!m\u00fcllsammlung":
+        elif body == "!m\u00fcllabfuhr":
             logger.debug("bin removal request from " + message.user_name)
 
             cur = self.database.cursor()
