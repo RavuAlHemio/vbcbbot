@@ -156,6 +156,7 @@ class BinAdmin(Module):
             cur = self.database.cursor()
             cur.execute("DELETE FROM bin_items")
             cur.execute("DELETE FROM bins")
+            self.database.commit()
 
             self.connector.send_message("Tonnen abgesammelt.")
             return
