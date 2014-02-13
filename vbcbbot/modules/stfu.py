@@ -119,6 +119,7 @@ class Stfu(Module):
             logger.info("{0} un-stfu-ed me".format(
                 new_message.user_name
             ))
+	    self.connector.stfu_deadline = None
             self.connector.send_message("I can speak again!")
 
         elif body.startswith("!stfuban "):
