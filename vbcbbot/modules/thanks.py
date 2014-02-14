@@ -2,6 +2,7 @@ from vbcbbot import chatbox_connector
 from vbcbbot.modules import Module
 
 import logging
+import re
 import sqlite3
 import time
 import xml.dom as dom
@@ -9,6 +10,7 @@ import xml.dom as dom
 __author__ = 'ondra'
 
 logger = logging.getLogger("vbcbbot.modules.thanks")
+thank_re = re.compile("^!(thank|thanks|thx) (.+)$")
 
 
 class Thanks(Module):
@@ -26,16 +28,9 @@ class Thanks(Module):
         # parse and strip
         body = message.decompiled_body().strip()
 
-        thank = False
-        nickname = None
-        if body.startswith("!thank "):
-            thank = True
-            nickname = body[len("!thank "):].strip()
-        elif body.startswith("!thanks "):
-            thank = True
-            nickname = body[len("!thanks "):].strip()
-
-        if thank:
+        thanks_match = thank_re.match(body)
+        if thanks_match is not None:
+            nickname = thanks_match.group(2).strip()
             lower_nickname = nickname.lower()
             if lower_nickname == message.user_name.lower():
                 self.connector.send_message("You are so full of yourself, {0}.".format(
