@@ -53,6 +53,14 @@ def dom_to_html(body_dom, base_url):
                 ret += '<{n}>{inside}</{n}>'.format(
                     n=node.name, inside=dom_to_html(node.children, base_url)
                 )
+            elif node.name == "h":
+                ret += '<sup>{inside}</sup>'.format(
+                    inside=dom_to_html(node.children, base_url)
+                )
+            elif node.name == "t":
+                ret += '<sub>{inside}</sub>'.format(
+                    inside=dom_to_html(node.children, base_url)
+                )
             elif node.name == "strike":
                 ret += '<span class="strike" style="text-decoration:line-through">{inside}</span>'.format(
                     inside=dom_to_html(node.children, base_url)
