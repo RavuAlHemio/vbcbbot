@@ -34,12 +34,12 @@ class Motivator(Module):
         # find the verb
         for (verb, categories_to_motivators) in self.verbs_to_categories_to_motivators.items():
             if body == "!{0} me".format(verb):
-                # pick a category
-                category_list = list(categories_to_motivators.keys())
-                category = self.random.choice(category_list)
+                # unite the motivators from all categories
+                motivator_list = []
+                for motivators in categories_to_motivators.values():
+                    motivator_list.extend(motivators)
 
                 # pick a motivator
-                motivator_list = list(categories_to_motivators[category])
                 self.send_random_motivator_from_list(motivator_list, message)
 
             elif body.startswith("!{0} me using ".format(verb)):
