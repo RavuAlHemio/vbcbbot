@@ -386,7 +386,7 @@ class ChatboxConnector:
             return minidom.parseString(ajax_string)
         except:
             logger.exception("AJAX response parse")
-            return None
+            raise TransferError()
 
     def send_message(self, message, bypass_stfu=False, bypass_filters=False, retry=0):
         """
@@ -637,8 +637,6 @@ class ChatboxConnector:
             return None
 
         result_dom = self.ajax("usersearch", {"fragment": username})
-        if result_dom is None:
-            return None
         for child in result_dom.documentElement.childNodes:
             if child.nodeType != child.ELEMENT_NODE:
                 continue
