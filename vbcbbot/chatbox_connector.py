@@ -317,7 +317,7 @@ class ChatboxConnector:
         :param pos_args: Positional arguments to pass to func.
         :param kw_args: Keyword arguments to pass to func. The function will also pass "retry=n"
         where n equals retry_count increased by 1.
-        :return:
+        :return: Whatever func returns.
         """
         if pos_args is None:
             pos_args = []
@@ -339,7 +339,7 @@ class ChatboxConnector:
         else:
             raise TransferError()
 
-        func(*pos_args, retry=retry_count+1, **kw_args)
+        return func(*pos_args, retry=retry_count+1, **kw_args)
 
     def should_stfu(self):
         if self.stfu_deadline is None:
@@ -379,11 +379,14 @@ class ChatboxConnector:
 
         if response.status != 200 or len(ajax_bytes) == 0:
             # something failed
-            self.retry(retry, self.ajax, operation, parameters)
-            return
+            return self.retry(retry, self.ajax, operation, parameters)
 
         ajax_string = ajax_bytes.decode(self.server_encoding)
-        return minidom.parseString(ajax_string)
+        try:
+            return minidom.parseString(ajax_string)
+        except:
+            logger.exception("AJAX response parse")
+            return None
 
     def send_message(self, message, bypass_stfu=False, bypass_filters=False, retry=0):
         """
@@ -634,6 +637,8 @@ class ChatboxConnector:
             return None
 
         result_dom = self.ajax("usersearch", {"fragment": username})
+        if result_dom is None:
+            return None
         for child in result_dom.documentElement.childNodes:
             if child.nodeType != child.ELEMENT_NODE:
                 continue
