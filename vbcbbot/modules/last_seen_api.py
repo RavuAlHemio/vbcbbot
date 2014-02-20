@@ -48,7 +48,7 @@ class LastSeenApi(Module):
 
         if response_data == "NULL":
             self.connector.send_message(
-                "{0}: The great [i]signanz[/i] doesn't remember seeing " +
+                "{0}: The great [i]signanz[/i] doesn't remember seeing "
                 "[i][noparse]{1}[/noparse][/i].".format(
                     message.user_name,
                     nickname
