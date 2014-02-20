@@ -68,7 +68,7 @@ class LastSeenApi(Module):
 
         time_text = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(timestamp))
 
-        self.connector(
+        self.connector.send_message(
             "{0}: The last time the great [i]signanz[/i] saw [i][noparse]{1}[/noparse][/i] "
             "was {2}.".format(
                 message.user_name, nickname, time_text
