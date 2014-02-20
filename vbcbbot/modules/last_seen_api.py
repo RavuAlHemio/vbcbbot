@@ -1,5 +1,6 @@
 from vbcbbot.modules import Module
 
+import base64
 import logging
 import time
 import urllib.parse as up
@@ -33,7 +34,16 @@ class LastSeenApi(Module):
         # due to variable substitution in configparse
         call_url = self.api_url.replace("%USERNAME%", url_escaped_nickname)
 
-        response = ur.urlopen(call_url)
+        request = ur.Request(call_url)
+
+        # authenticate?
+        if self.api_username != "":
+            authentication_pair = "{0}:{1}".format(self.api_username, self.api_password)
+            authentication_bytes = authentication_pair.encode("utf-8")
+            authentication_b64_string = base64.b64encode(authentication_bytes).decode("us-ascii")
+            request.add_header("Authorization", "Basic {0}".format(authentication_b64_string))
+
+        response = ur.urlopen(request)
         response_data = response.read().decode("us-ascii")
 
         if response_data == "NULL":
@@ -77,3 +87,11 @@ class LastSeenApi(Module):
             config_section = {}
 
         self.api_url = config_section["api url"]
+
+        self.api_username = ""
+        if "username" in config_section:
+            self.api_username = config_section["username"]
+
+        self.api_password = ""
+        if "password" in config_section:
+            self.api_password = config_section["password"]
