@@ -48,7 +48,7 @@ class LastSeenApi(Module):
 
         if response_data == "NULL":
             self.connector.send_message(
-                "{0}: The great [i]signanz[/i] doesn't remember seeing "
+                "{0}: The great and powerful [i]signanz[/i] doesn't remember seeing "
                 "[i][noparse]{1}[/noparse][/i].".format(
                     message.user_name,
                     nickname
@@ -69,8 +69,8 @@ class LastSeenApi(Module):
         time_text = time.strftime("%Y-%m-%d %H:%M", time.localtime(timestamp))
 
         self.connector.send_message(
-            "{0}: The last time the great [i]signanz[/i] saw [i][noparse]{1}[/noparse][/i] "
-            "was {2}.".format(
+            "{0}: The last time the great and powerful [i]signanz[/i] saw "
+            "[i][noparse]{1}[/noparse][/i] was {2}.".format(
                 message.user_name, nickname, time_text
             )
         )
