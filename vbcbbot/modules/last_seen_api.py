@@ -2,6 +2,7 @@ from vbcbbot.modules import Module
 
 import base64
 import logging
+import re
 import time
 import urllib.parse as up
 import urllib.request as ur
@@ -9,6 +10,7 @@ import urllib.request as ur
 __author__ = 'ondra'
 
 logger = logging.getLogger("vbcbbot.modules.last_seen_api")
+seen_re = re.compile("^!(seen|lastseen) (.+)$")
 
 
 class LastSeenApi(Module):
@@ -24,10 +26,11 @@ class LastSeenApi(Module):
         :type message: vbcbbot.chatbox_connector.ChatboxMessage
         """
         body = message.body_soup().text.strip()
-        if not body.startswith("!lastseen "):
+        match = seen_re.match(body)
+        if match is None:
             return
 
-        nickname = body[len("!lastseen "):].strip()
+        nickname = match.group(2).strip()
         url_escaped_nickname = up.quote_plus(nickname)
 
         # note: must be specified as "%%USERNAME%%" in the config file
