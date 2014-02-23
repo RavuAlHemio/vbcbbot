@@ -2,12 +2,14 @@ from vbcbbot import chatbox_connector
 from vbcbbot.modules import Module
 
 import logging
+import re
 import sqlite3
 import time
 
 __author__ = 'ondra'
 
 logger = logging.getLogger("vbcbbot.modules.messenger")
+msg_trigger = re.compile("^!(msg|mail) (.+)$")
 
 
 class Messenger(Module):
@@ -18,19 +20,22 @@ class Messenger(Module):
         return
 
     def potential_message_send(self, message, body, lower_sender_name):
-        if not body.startswith("!msg "):
+        match = msg_trigger.match(body)
+        if match is None:
             return
 
-        colon_index = body.find(":")
+        recipient_and_message = match.group(2)
+
+        colon_index = recipient_and_message.find(":")
         if colon_index == -1:
             self.connector.send_message(
                 "You need to put a colon between the nickname and the message!"
             )
             return
 
-        target_name = body[len("!msg "):colon_index].strip()
+        target_name = recipient_and_message[:colon_index].strip()
         lower_target_name = target_name.lower()
-        send_body = body[colon_index+1:].strip()
+        send_body = recipient_and_message[colon_index+1:].strip()
 
         if lower_target_name == self.connector.username.lower():
             self.connector.send_message("Sorry, I don\u2019t deliver to myself!")
