@@ -26,16 +26,16 @@ class Messenger(Module):
 
         recipient_and_message = match.group(2)
 
-        colon_index = recipient_and_message.find(":")
-        if colon_index == -1:
+        semicolon_index = recipient_and_message.find(";")
+        if semicolon_index == -1:
             self.connector.send_message(
-                "You need to put a colon between the nickname and the message!"
+                "You need to put a semicolon between the nickname and the message!"
             )
             return
 
-        target_name = recipient_and_message[:colon_index].strip()
+        target_name = recipient_and_message[:semicolon_index].strip()
         lower_target_name = target_name.lower()
-        send_body = recipient_and_message[colon_index+1:].strip()
+        send_body = recipient_and_message[semicolon_index+1:].strip()
 
         if lower_target_name == self.connector.username.lower():
             self.connector.send_message("Sorry, I don\u2019t deliver to myself!")
