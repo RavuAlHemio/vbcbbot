@@ -12,6 +12,34 @@ logger = logging.getLogger("vbcbbot.modules.messenger")
 msg_trigger = re.compile("^!(msg|mail) (.+)$")
 
 
+def split_recipient_and_message(text):
+    """
+    Split recipient and message on a colon boundary. Allow escaping of colons using backslashes,
+    as well as escaping backslashes by doubling.
+    :param text: The text to escape.
+    :type text: str
+    :return: A tuple consisting of the recipient's username and the body text of the message.
+    :rtype: (str, str)
+    """
+    recipient = ""
+    escaping = False
+    for (i, c) in enumerate(text):
+        if escaping:
+            if c in (":", "\\"):
+                recipient += c
+            else:
+                raise ValueError("Invalid escape sequence: \\{c}".format(c=c))
+            escaping = False
+        else:
+            if c == "\\":
+                escaping = True
+            elif c == ":":
+                return recipient, text[i+1:]
+            else:
+                recipient += c
+    raise ValueError("You need to put a colon between the nickname and the message!")
+
+
 class Messenger(Module):
     """Delivers messages to users when they return."""
 
@@ -25,17 +53,11 @@ class Messenger(Module):
             return
 
         recipient_and_message = match.group(2)
+        (target_name, send_body) = split_recipient_and_message(recipient_and_message)
 
-        semicolon_index = recipient_and_message.find(";")
-        if semicolon_index == -1:
-            self.connector.send_message(
-                "You need to put a semicolon between the nickname and the message!"
-            )
-            return
-
-        target_name = recipient_and_message[:semicolon_index].strip()
+        target_name = target_name.strip()
         lower_target_name = target_name.lower()
-        send_body = recipient_and_message[semicolon_index+1:].strip()
+        send_body = send_body.strip()
 
         if lower_target_name == self.connector.username.lower():
             self.connector.send_message("Sorry, I don\u2019t deliver to myself!")
@@ -48,7 +70,12 @@ class Messenger(Module):
             pass
 
         if user_info is None:
-            self.connector.send_message("Sorry, I don\u2019t know \u201c{0}\u201d.".format(target_name))
+            colon_info = ""
+            if ":" in send_body:
+                colon_info = " (You may escape colons in usernames using a backslash.)"
+            self.connector.send_message(
+                "Sorry, I don\u2019t know \u201c{0}\u201d.".format(target_name) + colon_info
+            )
             return
 
         logger.debug("{0} sending message {1} to {2}".format(
