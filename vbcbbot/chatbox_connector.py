@@ -73,7 +73,7 @@ def ajax_url_encode_string(string):
         if c in url_safe_characters:
             ret += c
         elif ord(c) <= 0x7f:
-            ret += "%{0:02x}".format(c)
+            ret += "%{0:02x}".format(ord(c))
         else:
             # escape it as UTF-16 with %u
             utf16_bytes = c.encode("utf-16be")
