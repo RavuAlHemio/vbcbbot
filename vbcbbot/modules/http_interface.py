@@ -36,6 +36,21 @@ def html_escape(s, escape_quotes=True, escape_apostrophes=False):
     return ret
 
 
+def js_escape_string(s, escape_quotes=True, escape_apostrophes=False):
+    ret = ""
+    strange = str(s)
+    for c in strange:
+        if c == "\\":
+            ret += "\\\\"
+        elif escape_quotes and c == '"':
+            ret += '\\"'
+        elif escape_apostrophes and c == "'":
+            ret += "\\'"
+        else:
+            ret += c
+    return ret
+
+
 def dom_to_html(body_dom, base_url):
     ret = ""
     for node in body_dom:
@@ -155,6 +170,36 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                     all_messages += output_string.encode("utf-8")
 
             self.send_ok_html_response(all_messages)
+
+        elif self.path == "/smilies":
+            smiley_string = '<span class="smileylist">'
+            smiley_string += '<a class="jsclick" onclick="hideSmilies()">Hide!</a>'
+
+            for (smiley_code, smiley_image_url) in sorted(self.http_interface.smilies.items()):
+                smiley_string += "".join([
+                    ' ',
+                    '<span class="smiley">',
+                    '<a class="jsclick" onclick="smileyClicked(\'{c}\')">'.format(
+                        c=html_escape(
+                            js_escape_string(
+                                smiley_code, escape_quotes=False, escape_apostrophes=True
+                            ),
+                            escape_quotes=True, escape_apostrophes=False
+                        )
+                    ),
+                    '<img src="{u}" title="{c}"/>'.format(
+                        c=html_escape(smiley_code),
+                        u=html_escape(urljoin(
+                            self.http_interface.connector.base_url, smiley_image_url
+                        ))
+                    ),
+                    '</a>',
+                    '</span>'
+                ])
+
+            smiley_string += '</span>'
+
+            self.send_ok_html_response(smiley_string.encode("utf-8"))
 
         elif editor_regex.match(self.path):
             # editor
@@ -286,6 +331,14 @@ class HttpInterface(Module):
         if "allowed files" in config_section:
             for f in config_section["allowed files"].split():
                 self.allowed_files.add(f.strip())
+
+        self.smilies = {}
+        if "smilies" in config_section:
+            for line in config_section["smilies"].split("\n"):
+                tag_url = line.split(" ", 1)
+                if len(tag_url) != 2:
+                    continue
+                self.smilies[tag_url[0]] = tag_url[1]
 
         with open(config_section["page template"], "r") as f:
             self.page_template = f.read()

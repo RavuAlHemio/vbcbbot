@@ -12,20 +12,48 @@ body { font-family: sans-serif; }
 .sendername a:link, .sendername a:visited, .editlink a:link, .editlink a:visited { text-decoration: none; color: black; }
 .sendername a:link .myself, .sendername a:visited .myself, .editlink a:link .myself, .editlink a:visited .myself { color: blue; }
 .icon { max-height: 4em; }
+.jsclick { cursor: pointer; }
 </style>
 <script type="text/javascript">
-function fetched() {
+function messagesFetched() {
   document.getElementById('messages').innerHTML = this.responseText;
-  window.setTimeout('fetch()', 5000);
+  window.setTimeout('fetchMessages()', 5000);
 }
 
-function fetch() {
+function smiliesFetched() {
+  document.getElementById('smilies').innerHTML = this.responseText;
+}
+
+function hideSmilies() {
+  document.getElementById('smilies').innerHTML = '<a class="jsclick" onclick="fetchSmilies()">Smile!</a>';
+}
+
+function smileyClicked(smiley) {
+  var re = /(^|\s)$/;
+  var val = document.getElementById('messageinput').value;
+  if (!re.test(val)) {
+    // message doesn't end with whitespace; add a space
+    val += ' ';
+  }
+  val += smiley;
+  document.getElementById('messageinput').value = val;
+}
+
+function fetchMessages() {
   var req = new XMLHttpRequest();
-  req.onload = fetched;
+  req.onload = messagesFetched;
   req.open('GET', '/messages', true);
   req.send();
 }
-window.setTimeout('fetch()', 500);
+
+function fetchSmilies() {
+  var req = new XMLHttpRequest();
+  req.onload = smiliesFetched;
+  req.open('GET', '/smilies', true);
+  req.send();
+}
+
+window.setTimeout('fetchMessages()', 500);
 window.setTimeout("document.getElementById('messageinput').focus()", 600);
 </script>
 </head>
@@ -34,6 +62,7 @@ window.setTimeout("document.getElementById('messageinput').focus()", 600);
 <p><input type="text" name="message" id="messageinput" /></p>
 <p><button type="submit" id="sendbutton">Send</button></p>
 </form>
+<p id="smilies"><a class="jsclick" onclick="fetchSmilies()">Smile!</a></p>
 <div id="messages">
 Fetching...
 </div>
