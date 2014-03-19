@@ -55,19 +55,13 @@ class NopeSmileys(Module):
         """
         Create a new no-devil-banana responder.
         :param connector: The communicator used to communicate with the chatbox.
+        :type connector: vbcbbot.chatbox_connector.ChatboxConnector
         :param config_section: The configuration section for this module.
         """
         Module.__init__(self, connector, config_section)
 
         if config_section is None:
             config_section = {}
-
-        smiley_to_url = {}
-        for line in config_section['smiley to url'].split("\n"):
-            key_val = line.split(" ")
-            if len(key_val) != 2:
-                continue
-            smiley_to_url[key_val[0]] = key_val[1]
 
         smiley_to_nope = {}
         for line in config_section['smiley to nope'].split("\n"):
@@ -82,7 +76,7 @@ class NopeSmileys(Module):
 
         self.nope_mapping = {}
 
-        for (smiley, yes_url) in smiley_to_url.items():
+        for (smiley, yes_url) in connector.smiley_codes_to_urls.items():
             if smiley in smiley_to_nope:
                 self.nope_mapping[yes_url] = smiley_to_nope[smiley]
 
