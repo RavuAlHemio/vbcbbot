@@ -58,3 +58,9 @@ class TestSplitRecipientAndMessage(unittest.TestCase):
     def test_all_colons_escaped(self):
         with self.assertRaises(ValueError):
             m.split_recipient_and_message("one\\: two\\: three\\\\\\: four\\:")
+
+    def test_smiley(self):
+        self.assertEqual(
+            m.split_recipient_and_message("user: :multihail:"),
+            ("user", " :multihail:")
+        )
