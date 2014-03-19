@@ -175,7 +175,9 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             smiley_string = '<span class="smileylist">'
             smiley_string += '<a class="jsclick" onclick="hideSmilies()">Hide!</a>'
 
-            for (smiley_code, smiley_image_url) in sorted(self.http_interface.smilies.items()):
+            for (smiley_code, smiley_image_url) in sorted(
+                self.http_interface.connector.smiley_codes_to_urls.items()
+            ):
                 smiley_string += "".join([
                     ' ',
                     '<span class="smiley">',
@@ -331,14 +333,6 @@ class HttpInterface(Module):
         if "allowed files" in config_section:
             for f in config_section["allowed files"].split():
                 self.allowed_files.add(f.strip())
-
-        self.smilies = {}
-        if "smilies" in config_section:
-            for line in config_section["smilies"].split("\n"):
-                tag_url = line.split(" ", 1)
-                if len(tag_url) != 2:
-                    continue
-                self.smilies[tag_url[0]] = tag_url[1]
 
         with open(config_section["page template"], "r") as f:
             self.page_template = f.read()

@@ -37,12 +37,6 @@ def run():
             hd_section = config['html decompiler']
             urls_to_smileys = {}
             tex_prefix = None
-            if 'urls to smileys' in hd_section:
-                for ln in hd_section['urls to smileys'].split("\n"):
-                    parts = ln.split(" ")
-                    if len(parts) != 2:
-                        continue
-                    urls_to_smileys[parts[0]] = parts[1]
             if 'tex prefix' in hd_section:
                 tex_prefix = hd_section['tex prefix']
             html_decompiler = HtmlDecompiler(urls_to_smileys, tex_prefix)

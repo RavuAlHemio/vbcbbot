@@ -216,6 +216,7 @@ class ChatboxConnector:
         self.cheap_page_url = up.urljoin(self.base_url, "faq.php")
         self.post_edit_url = up.urljoin(self.base_url, "misc.php")
         self.messages_url = up.urljoin(self.base_url, "misc.php?show=ccbmessages")
+        self.smilies_url = up.urljoin(self.base_url, "misc.php?do=showsmilies")
         self.ajax_url = up.urljoin(self.base_url, "ajax.php")
 
         # prepare the cookie jar, its lock, and the URL opener
@@ -231,6 +232,8 @@ class ChatboxConnector:
         self.message_modified_subscribers = set()
         self.old_message_ids_to_bodies = {}
         self.lowercase_usernames_to_user_id_name_pairs = {}
+        self.smiley_codes_to_urls = {}
+        self.smiley_urls_to_codes = {}
         self.initial_salvo = True
         self.security_token = None
         self.last_message_received = -1
@@ -270,6 +273,9 @@ class ChatboxConnector:
         # fetch the security token too
         self.fetch_security_token()
 
+        # update smilies
+        self.update_smilies()
+
     def fetch_security_token(self):
         """
         Fetch and update the security token required for most operations from the forum.
@@ -286,6 +292,37 @@ class ChatboxConnector:
         token_field = soup.find("input", attrs={"name": "securitytoken"})
         self.security_token = token_field["value"]
         logger.debug("new security token: {0}".format(repr(self.security_token)))
+
+    def update_smilies(self):
+        """
+        Fetches an up-to-date list of available smilies.
+        """
+        logger.info("updating smilies")
+        with self.cookie_jar_lid:
+            smileys_response = self.url_opener.open(self.smilies_url, timeout=self.timeout)
+            smileys_page_data = smileys_response.read()
+            smileys_page_string = smileys_page_data.decode(self.server_encoding)
+
+        # soup!
+        soup = bs4.BeautifulSoup(io.StringIO(smileys_page_string))
+
+        code_to_url = {}
+        url_to_code = {}
+
+        for smilie_bit in soup.find_all("li", attrs={"class": "smiliebit"}):
+            code = smilie_bit.find("div", attrs={"class": "smilietext"}).text
+            image = smilie_bit.find("div", attrs={"class": "smilieimage"}).find("img", src=True)
+            url = image["src"]
+
+            code_to_url[code] = url
+            url_to_code[url] = code
+
+        if len(code_to_url) > 0 and len(url_to_code) > 0:
+            self.smiley_codes_to_urls = code_to_url
+            self.smiley_urls_to_codes = url_to_code
+
+            # update this one too
+            self.html_decompiler.smiley_url_to_symbol = url_to_code
 
     def encode_outgoing_message(self, outgoing_message):
         """
