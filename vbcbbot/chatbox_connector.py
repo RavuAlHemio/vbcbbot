@@ -647,7 +647,7 @@ class ChatboxConnector:
                 self.fetch_new_messages()
                 penalty_coefficient = 1
             except:
-                logger.exception("exception fetching messages")
+                logger.exception("exception fetching messages; penalty coefficient is {0}".format(penalty_coefficient))
             penalty_coefficient += 1
             time.sleep(self.time_between_reads * penalty_coefficient)
 
