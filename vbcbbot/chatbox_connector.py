@@ -93,7 +93,7 @@ def children_to_string(lxml_tree):
     ret = []
     for child in lxml_tree.xpath("./node()"):
         if hasattr(child, "iterchildren"):
-            ret.append(etree.tostring(child, encoding="unicode"))
+            ret.append(etree.tostring(child, encoding="unicode", with_tail=False))
         else:
             ret.append(child)
     return "".join(ret)
