@@ -28,8 +28,8 @@ def fish_out_id(element, url_piece):
     :param url_piece: The URL piece to search for; it is succeeded directly by the ID.
     :return: The ID fished out of the message.
     """
-    for link_element in element.find_all("a", href=True):
-        href = link_element["href"]
+    for link_element in element.iterfind(".//a[@href]"):
+        href = link_element.attrib["href"]
         piece_index = href.find(url_piece)
         if piece_index >= 0:
             return int(href[(piece_index + len(url_piece)):])
@@ -495,7 +495,7 @@ class ChatboxConnector:
         messages_string = messages_bytes.decode(self.server_encoding)
         messages = etree.HTML(messages_string)
 
-        all_trs = messages_soup.find_all("tr", recursive=False)
+        all_trs = messages.iterfind("./body/tr")
         if len(all_trs) == 0:
             # aw crap
             self.retry(retry, self.fetch_new_messages)
@@ -508,7 +508,7 @@ class ChatboxConnector:
         # for each message
         for tr in all_trs:
             # pick out the TDs
-            tds = tr.find_all("td")
+            tds = list(tr.iterfind("./td"))
 
             # pick out the first (metadata)
             meta_td = tds[0]
@@ -533,7 +533,7 @@ class ChatboxConnector:
 
             # fetch the timestamp
             timestamp = time.time()
-            timestamp_match = timestamp_pattern.search(meta_td.decode_contents())
+            timestamp_match = timestamp_pattern.search(etree.tostring(meta_td))
             if timestamp_match is not None:
                 time_string = timestamp_match.group(1)
                 try:
@@ -544,8 +544,8 @@ class ChatboxConnector:
 
             # get the nickname
             nick_element = None
-            for link_element in meta_td.find_all("a", href=True):
-                if self.user_id_piece in link_element["href"]:
+            for link_element in meta_td.iterfind(".//a[@href]"):
+                if self.user_id_piece in link_element.attrib["href"]:
                     nick_element = link_element
 
             if nick_element is None:
@@ -558,7 +558,7 @@ class ChatboxConnector:
             # cache the nickname
             self.lowercase_usernames_to_user_id_name_pairs[nick.lower()] = (user_id, nick)
 
-            message_body = tds[1].decode_contents().strip()
+            message_body = etree.tostring(tds[1]).strip()
             message = ChatboxMessage(message_id, user_id, nick_code, message_body, timestamp,
                                      self.html_decompiler)
 

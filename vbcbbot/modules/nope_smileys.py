@@ -16,9 +16,9 @@ class NopeSmileys(Module):
     def message_received(self, message):
         """Called by the communicator when a new message has been received."""
 
-        soup = message.body_soup()
-        for image in soup.find_all("img", src=True):
-            src = image['src']
+        body_lxml = message.body_lxml()
+        for image in body_lxml.iterfind(".//img[@src]"):
+            src = image.attrib['src']
             if src in self.nope_mapping:
                 logger.debug("smiley {0} maps to nope smiley {1}".format(src,
                                                                          self.nope_mapping[src]))

@@ -16,21 +16,21 @@ class NoDevilBanana(Module):
     def message_modified(self, message):
         """Called by the communicator when a visible message has been modified."""
 
-        soup = message.body_soup()
-        for image in soup.find_all("img", src=True):
-            if image['src'] == self.no_devil_banana_url:
+        body_lxml = message.body_lxml()
+        for image in body_lxml.iterfind(".//img[@src]"):
+            if image.attrib['src'] == self.no_devil_banana_url:
                 logger.debug(":nodb: found in {0}'s edited message {1}".format(
                     message.user_name, message.id
                 ))
                 with self.last_lock:
                     if self.last_nodb_message < message.id:
                         self.last_nodb_message = message.id
-            elif image['src'] in self.devil_banana_urls:
+            elif image.attrib['src'] in self.devil_banana_urls:
                 if message.user_name == self.connector.username:
                     # ignore my own devil banana messages
                     return
                 logger.debug("devil banana {2} found in {0}'s edited message {1}".format(
-                    message.user_name, message.id, image['src']
+                    message.user_name, message.id, image.attrib['src']
                 ))
                 with self.last_lock:
                     if self.last_banana_message < message.id:
@@ -40,20 +40,20 @@ class NoDevilBanana(Module):
     def message_received(self, message):
         """Called by the communicator when a new message has been received."""
 
-        soup = message.body_soup()
-        for image in soup.find_all("img", src=True):
-            if image['src'] == self.no_devil_banana_url:
+        body_lxml = message.body_lxml()
+        for image in body_lxml.iterfind(".//img[@src]"):
+            if image.attrib['src'] == self.no_devil_banana_url:
                 logger.debug(":nodb: found in {0}'s message {1}".format(
                     message.user_name, message.id
                 ))
                 with self.last_lock:
                     self.last_nodb_message = message.id
-            elif image['src'] in self.devil_banana_urls:
+            elif image.attrib['src'] in self.devil_banana_urls:
                 if message.user_name == self.connector.username:
                     # ignore my own devil banana messages
                     return
                 logger.debug("devil banana {2} found in {0}'s message {1}".format(
-                    message.user_name, message.id, image['src']
+                    message.user_name, message.id, image.attrib['src']
                 ))
                 with self.last_lock:
                     self.last_banana_message_due_to_edit = False

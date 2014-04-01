@@ -75,7 +75,7 @@ class Stfu(Module):
             # ignore my own messages
             return
 
-        body = new_message.body_soup().text.strip()
+        body = "".join(new_message.body_lxml().itertext()).strip()
 
         if body == "!stfu":
             # check for ban

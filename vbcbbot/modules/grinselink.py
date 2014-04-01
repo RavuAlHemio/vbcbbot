@@ -24,8 +24,8 @@ class Grinselink(Module):
             # we already reacted to this
             return
 
-        soup = message.body_soup()
-        for _ in soup.find_all("a", href=True):
+        body_lxml = message.body_lxml()
+        for _ in body_lxml.iterfind(".//a[@href]"):
             logger.info("detected stealth Grinselink")
             self.known_grinselink_ids.add(message.id)
             self.connector.send_message(self.message_to_post_stealth)
@@ -44,8 +44,8 @@ class Grinselink(Module):
 
         logger.debug("message posted by {0}!".format(message.user_name))
 
-        soup = message.body_soup()
-        for _ in soup.find_all("a", href=True):
+        body_lxml = message.body_lxml()
+        for _ in body_lxml.iterfind(".//a[@href]"):
             logger.info("detected Grinselink")
             self.known_grinselink_ids.add(message.id)
             self.connector.send_message(self.message_to_post)

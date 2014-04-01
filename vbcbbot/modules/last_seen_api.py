@@ -25,7 +25,7 @@ class LastSeenApi(Module):
         Called by the communicator when a new message has been received.
         :type message: vbcbbot.chatbox_connector.ChatboxMessage
         """
-        body = message.body_soup().text.strip()
+        body = "".join(message.body_lxml().itertext()).strip()
         match = seen_re.match(body)
         if match is None:
             return
