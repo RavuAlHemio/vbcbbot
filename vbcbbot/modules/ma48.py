@@ -102,13 +102,7 @@ class Ma48(Module):
             # ignore my own bin throwing
             return
 
-        body = message.body.strip()
-        if "<" in body:
-            # can't handle HTML; skip
-            return
-
-        # unescape entities
-        body = bs4.BeautifulSoup(body).text
+        body = "".join(message.body_lxml.itertext())
 
         match = waste_bin_re.search(body)
         if match is not None:

@@ -87,13 +87,15 @@ def join_adjacent_text_nodes(dom_list):
         if type(item) == Text:
             text_nodes_to_join.append(item)
         else:
-            texts = [n.text for n in text_nodes_to_join]
-            ret.append(Text("".join(texts)))
+            texts = "".join([n.text for n in text_nodes_to_join])
+            if len(texts) > 0:
+                ret.append(Text(texts))
             ret.append(item)
             text_nodes_to_join = []
     if len(text_nodes_to_join) > 0:
-        texts = [n.text for n in text_nodes_to_join]
-        ret.append(Text("".join(texts)))
+        texts = "".join([n.text for n in text_nodes_to_join])
+        if len(texts) > 0:
+            ret.append(Text(texts))
     return ret
 
 
@@ -143,107 +145,111 @@ class HtmlDecompiler:
 
         return HtmlDecompiler(smiley_url_to_symbol)
 
-    def decompile_soup(self, soup):
+    def decompile_lxml(self, elem, watch_out_for_p=False):
         ret = []
-
-        for child in soup.children:
-            if hasattr(child, "children"):
+        for child in elem.xpath("./node()|./text()"):
+            if hasattr(child, "iterchildren"):
                 # it's a tag
 
-                if child.name == "img" and child.has_attr("src"):
-                    if child.attrs['src'] in self.smiley_url_to_symbol:
+                if child.tag == "body":
+                    # lxml insists on packing everything into /html/body; work around this
+                    return self.decompile_lxml(child, True)
+
+                elif watch_out_for_p and child.tag == "p":
+                    # lxml insisted on packing this even further: /html/body/p; work around this too
+                    return self.decompile_lxml(child)
+
+                elif child.tag == "img" and "src" in child.attrib:
+                    if child.attrib['src'] in self.smiley_url_to_symbol:
                         # it's a smiley
-                        ret.append(SmileyText(self.smiley_url_to_symbol[child.attrs['src']], child.attrs['src']))
+                        ret.append(SmileyText(self.smiley_url_to_symbol[child.attrib['src']], child.attrib['src']))
                     elif self.tex_prefix is not None and \
-                            child.attrs['src'].startswith(self.tex_prefix):
+                            child.attrib['src'].startswith(self.tex_prefix):
                         # TeX
-                        tex_code = child.attrs['src'][len(self.tex_prefix):]
+                        tex_code = child.attrib['src'][len(self.tex_prefix):]
                         ret.append(Element("tex", [Text(tex_code)]))
                     else:
                         # icon?
-                        ret.append(Element("icon", [Text(child.attrs['src'])]))
+                        ret.append(Element("icon", [Text(child.attrib['src'])]))
 
-                elif child.name == "a" and child.has_attr("href"):
-                    if child.attrs["href"].startswith("mailto:"):
+                elif child.tag == "a" and "href" in child.attrib:
+                    if child.attrib["href"].startswith("mailto:"):
                         # e-mail link
-                        address = child.attrs["href"][len("mailto:"):]
-                        ret.append(Element("email", self.decompile_soup(child), address))
+                        address = child.attrib["href"][len("mailto:"):]
+                        ret.append(Element("email", self.decompile_lxml(child), address))
                     else:
-                        child_list = list(child.children)
-                        if len(child_list) == 1 and child_list[0].name == "img" and \
-                                child_list[0].has_attr("src") and \
-                                child_list[0]['src'] == child.attrs['href']:
+                        child_list = list(child.iterchildren())
+                        if len(child_list) == 1 and child_list[0].tag == "img" and \
+                                "src" in child_list[0].attrib and \
+                                child_list[0].attrib['src'] == child.attrib['href']:
                             # icon -- let the img handler take care of it
-                            ret += self.decompile_soup(child)
+                            ret += self.decompile_lxml(child)
                         else:
                             # some other link -- do it manually
                             # this also catches [thread], [post], [rtfaq], [stfw] -- the difference
                             # to normal [url] is so minimal I decided not to implement it
-                            ret.append(Element("url", self.decompile_soup(child),
-                                               child.attrs["href"]))
+                            ret.append(Element("url", self.decompile_lxml(child),
+                                               child.attrib["href"]))
 
-                elif child.name in "biu":
+                elif child.tag in "biu":
                     # bold/italic/underline!
-                    ret.append(Element(child.name, self.decompile_soup(child)))
-                elif child.name == "sub":
-                    ret.append(Element("t", self.decompile_soup(child)))
-                elif child.name == "sup":
-                    ret.append(Element("h", self.decompile_soup(child)))
-                elif child.name == "strike":
-                    ret.append(Element("strike", self.decompile_soup(child)))
+                    ret.append(Element(child.tag, self.decompile_lxml(child)))
+                elif child.tag == "sub":
+                    ret.append(Element("t", self.decompile_lxml(child)))
+                elif child.tag == "sup":
+                    ret.append(Element("h", self.decompile_lxml(child)))
+                elif child.tag == "strike":
+                    ret.append(Element("strike", self.decompile_lxml(child)))
 
-                elif child.name == "font" and child.has_attr("color"):
+                elif child.tag == "font" and "color" in child.attrib:
                     # font color
-                    ret.append(Element("color", self.decompile_soup(child), child.attrs['color']))
+                    ret.append(Element("color", self.decompile_lxml(child), child.attrib['color']))
 
-                elif child.name == "span" and child.has_attr("style"):
-                    if child.attrs["style"] == "direction: rtl; unicode-bidi: bidi-override;":
-                        ret.append(Element("flip", self.decompile_soup(child)))
-                    elif child.attrs["style"].startswith("font-family: "):
-                        font_family = child.attrs["style"][len("font-family: "):]
-                        ret.append(Element("font", self.decompile_soup(child), font_family))
+                elif child.tag == "span" and "style" in child.attrib:
+                    if child.attrib["style"] == "direction: rtl; unicode-bidi: bidi-override;":
+                        ret.append(Element("flip", self.decompile_lxml(child)))
+                    elif child.attrib["style"].startswith("font-family: "):
+                        font_family = child.attrib["style"][len("font-family: "):]
+                        ret.append(Element("font", self.decompile_lxml(child), font_family))
 
-                elif child.name == "span" and child.has_attr("class"):
-                    if child.attrs["class"] == "highlight":
-                        ret.append(Element("highlight", self.decompile_soup(child)))
-                    elif child.attrs["class"] == "IRONY":
-                        ret.append(Element("irony", self.decompile_soup(child)))
+                elif child.tag == "span" and "class" in child.attrib:
+                    if child.attrib["class"] == "highlight":
+                        ret.append(Element("highlight", self.decompile_lxml(child)))
+                    elif child.attrib["class"] == "IRONY":
+                        ret.append(Element("irony", self.decompile_lxml(child)))
 
-                elif child.name == "div" and child.has_attr("style"):
-                    if child.attrs["style"] == "margin-left:40px":
-                        ret.append(Element("indent", self.decompile_soup(child)))
-                    elif child.attrs["style"] == "text-align: left;":
-                        ret.append(Element("left", self.decompile_soup(child)))
-                    elif child.attrs["style"] == "text-align: center;":
-                        ret.append(Element("center", self.decompile_soup(child)))
-                    elif child.attrs["style"] == "text-align: right;":
-                        ret.append(Element("right", self.decompile_soup(child)))
+                elif child.tag == "div" and "style" in child.attrib:
+                    if child.attrib["style"] == "margin-left:40px":
+                        ret.append(Element("indent", self.decompile_lxml(child)))
+                    elif child.attrib["style"] == "text-align: left;":
+                        ret.append(Element("left", self.decompile_lxml(child)))
+                    elif child.attrib["style"] == "text-align: center;":
+                        ret.append(Element("center", self.decompile_lxml(child)))
+                    elif child.attrib["style"] == "text-align: right;":
+                        ret.append(Element("right", self.decompile_lxml(child)))
 
-                elif child.name == "div" and child.has_attr("class"):
-                    if child.attrs["class"] == "bbcode_container":
-                        code_pre = child.find("pre", attrs={"class": "bbcode_code"},
-                                              recursive=False)
-                        quote_div = child.find("div", attrs={"class": "bbcode_quote"},
-                                               recursive=False)
+                elif child.tag == "div" and "class" in child.attrib:
+                    if child.attrib["class"] == "bbcode_container":
+                        code_pre = child.find("./pre[@class='bbcode_code']")
+                        quote_div = child.find("./div[@class='bbcode_quote']")
                         if code_pre is not None:
                             # [code]
                             # FIXME: is this correct (enough)?
-                            code_string = child.find("pre").text
+                            code_string = "".join(child.find(".//pre").itertext())
                             ret.append(Element("code", [Text(code_string)]))
                         elif quote_div is not None:
                             # [quote]
                             # find poster
                             post_number = None
                             poster_name = None
-                            posted_by_div = quote_div.find("div",
-                                                           attrs={"class": "bbcode_postedby"})
+                            posted_by_div = quote_div.find(".//div[@class='bbcode_postedby']")
                             if posted_by_div is not None:
-                                poster_name = posted_by_div.find("strong").text
-                                poster_link_a = posted_by_div.find("a", href=True)
+                                poster_name = "".join(posted_by_div.find(".//strong").itertext())
+                                poster_link_a = posted_by_div.find(".//a[@href]")
                                 if poster_link_a is not None and \
-                                        poster_link_a.attrs["href"].startswith("showthread.php?p="):
+                                        poster_link_a.attrib["href"].startswith("showthread.php?p="):
                                     post_href_rest = \
-                                        poster_link_a.attrs["href"][len("showthread.php?p="):]
+                                        poster_link_a.attrib["href"][len("showthread.php?p="):]
                                     post_number = post_href_rest[:post_href_rest.find("#")]
 
                             quote_attrib = None
@@ -252,31 +258,31 @@ class HtmlDecompiler:
                                 if post_number is not None:
                                     quote_attrib += ";{0}".format(post_number)
 
-                            message_div = quote_div.find("div", attrs={"class": "message"})
+                            message_div = quote_div.find(".//div[@class='message']")
 
-                            ret.append(Element("quote", self.decompile_soup(message_div),
+                            ret.append(Element("quote", self.decompile_lxml(message_div),
                                                quote_attrib))
 
-                elif child.name == "ul":
-                    ret.append(Element("list", self.decompile_soup(child)))
-                elif child.name == "ol" and child.has_attr("class") and \
-                        child.attrs["class"] == "decimal":
-                    ret.append(Element("list", self.decompile_soup(child), "1"))
-                elif child.name == "li" and child.has_attr("style") and child.attrs["style"] == "":
-                    ret.append(ListItem(self.decompile_soup(child)))
+                elif child.tag == "ul":
+                    ret.append(Element("list", self.decompile_lxml(child)))
+                elif child.tag == "ol" and "class" in child.attrib and \
+                        child.attrib["class"] == "decimal":
+                    ret.append(Element("list", self.decompile_lxml(child), "1"))
+                elif child.tag == "li" and "style" in child.attrib and child.attrib["style"] == "":
+                    ret.append(ListItem(self.decompile_lxml(child)))
 
-                elif child.name == "iframe" and child.has_attr("src"):
-                    match = youtube_embed_re.match(child.attrs["src"])
+                elif child.tag == "iframe" and "src" in child.attrib:
+                    match = youtube_embed_re.match(child.attrib["src"])
                     if match is not None:
                         # YouTube embed
                         video_selector = "youtube;" + match.group(1)
                         ret.append(Element("video", [Text("a video")], video_selector))
 
-                elif child.name == "br":
+                elif child.tag == "br":
                     ret.append(Text("\n"))
 
                 else:
-                    logger.warning("skipping unknown HTML element {0}".format(child.name))
+                    logger.warning("skipping unknown HTML element {0}".format(child.tag))
 
             else:
                 # it's a string
@@ -289,19 +295,18 @@ class HtmlDecompiler:
         return join_adjacent_text_nodes(ret)
 
 if __name__ == '__main__':
-    import bs4
+    from lxml.etree import HTML
     smilies = {
         "pics/nb/smilies/smile.gif": ":)"
     }
     decompiler = HtmlDecompiler(smilies, "http://www.rueckgr.at/cgi-bin/mimetex.cgi?")
-    dom = decompiler.decompile_soup(bs4.BeautifulSoup(
+    dom = decompiler.decompile_lxml(HTML(
         '<img src="http://www.rueckgr.at/cgi-bin/mimetex.cgi?\\leftarrow"/>' +
         ' ist eigentlich kein Bild, aber das hier schon: ' +
         '<img src="pics/nb/smilies/smile.gif" /> und das hier ist ein Icon: ' +
         '<a href="http://www.informatik-forum.at/images/smilies/_fluffy__by_cindre.gif">' +
         '<img style="max-height: 50px" ' +
         'src="http://www.informatik-forum.at/images/smilies/_fluffy__by_cindre.gif" /></a> und ' +
-        'das hier ist ein escapter Smiley :) cool oder?',
-        "html.parser"
+        'das hier ist ein escapter Smiley :) cool oder?'
     ))
     print(dom)

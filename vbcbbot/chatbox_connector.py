@@ -1,10 +1,10 @@
 from vbcbbot.html_decompiler import HtmlDecompiler
 
-import bs4
 import http.client as hcl
 import http.cookiejar as cj
 import io
 import logging
+from lxml import etree
 import re
 import socket
 import threading
@@ -13,7 +13,6 @@ import unicodedata
 import urllib.error as ue
 import urllib.parse as up
 import urllib.request as ur
-import xml.dom.minidom as minidom
 
 __author__ = 'ondra'
 
@@ -122,13 +121,13 @@ class ChatboxMessage:
         """
         return io.StringIO(self.user_name_body)
 
-    def user_name_soup(self):
+    def user_name_lxml(self):
         """
-        Return a new BeautifulSoup instance for the username.
-        :return: A new BeautifulSoup instance for the username.
-        :rtype: bs4.BeautifulSoup
+        Return a new lxml HTML instance for the username.
+        :return: A new lxml HTML instance for the username.
+        :rtype: lxml.etree.HTML
         """
-        return bs4.BeautifulSoup(self.user_name_io(), "html.parser")
+        return etree.HTML(self.user_name_body)
 
     @property
     def user_name(self):
@@ -136,7 +135,7 @@ class ChatboxMessage:
         The name of the user who posted this message.
         :rtype: str
         """
-        return self.user_name_soup().text
+        return "".join(self.user_name_lxml().itertext())
 
     def decompiled_user_name_dom(self):
         """
@@ -144,7 +143,7 @@ class ChatboxMessage:
         :return: The DOM of the username decompiled using HtmlDecompiler.
         :rtype: list[vbcbbot.html_decompiler.Node]
         """
-        return self.html_decompiler.decompile_soup(self.user_name_soup())
+        return self.html_decompiler.decompile_lxml(self.user_name_lxml())
 
     def decompiled_user_name(self):
         """
@@ -162,13 +161,13 @@ class ChatboxMessage:
         """
         return io.StringIO(self.body)
 
-    def body_soup(self):
+    def body_lxml(self):
         """
-        Return a new BeautifulSoup instance for the body of the message.
-        :return: A new BeautifulSoup instance for the body of the message.
-        :rtype: bs4.BeautifulSoup
+        Return a new lxml HTML instance for the body of the message.
+        :return: A new lxml HTML instance for the body of the message.
+        :rtype: lxml.etree.HTML
         """
-        return bs4.BeautifulSoup(self.body_io(), "html.parser")
+        return etree.HTML(self.body)
 
     def decompiled_body_dom(self):
         """
@@ -176,7 +175,7 @@ class ChatboxMessage:
         :return: The DOM of the message body decompiled using HtmlDecompiler.
         :rtype: list[vbcbbot.html_decompiler.Node]
         """
-        return self.html_decompiler.decompile_soup(self.body_soup())
+        return self.html_decompiler.decompile_lxml(self.body_lxml())
 
     def decompiled_body(self):
         """
@@ -287,10 +286,10 @@ class ChatboxConnector:
             cheap_page_data = cheap_response.read()
             cheap_page_string = cheap_page_data.decode(self.server_encoding)
 
-        # load it into Beautiful Soup
-        soup = bs4.BeautifulSoup(io.StringIO(cheap_page_string))
-        token_field = soup.find("input", attrs={"name": "securitytoken"})
-        self.security_token = token_field["value"]
+        # load it into lxml
+        cheap_page = etree.HTML(cheap_page_string)
+        token_field = cheap_page.find(".//input[@name='securitytoken']")
+        self.security_token = token_field.attrib["value"]
         logger.debug("new security token: {0}".format(repr(self.security_token)))
 
     def update_smilies(self):
@@ -303,16 +302,16 @@ class ChatboxConnector:
             smileys_page_data = smileys_response.read()
             smileys_page_string = smileys_page_data.decode(self.server_encoding)
 
-        # soup!
-        soup = bs4.BeautifulSoup(io.StringIO(smileys_page_string))
+        # lxml!
+        smileys = etree.HTML(smileys_page_string)
 
         code_to_url = {}
         url_to_code = {}
 
-        for smilie_bit in soup.find_all("li", attrs={"class": "smiliebit"}):
-            code = smilie_bit.find("div", attrs={"class": "smilietext"}).text
-            image = smilie_bit.find("div", attrs={"class": "smilieimage"}).find("img", src=True)
-            url = image["src"]
+        for smilie_bit in smileys.findall(".//li[@class='smiliebit']"):
+            code = "".join(smilie_bit.find(".//div[@class='smilietext']").itertext())
+            image = smilie_bit.find(".//div[@class='smilieimage']//img[@src]").find("img", src=True)
+            url = image.attrib["src"]
 
             code_to_url[code] = url
             url_to_code[url] = code
@@ -393,7 +392,7 @@ class ChatboxConnector:
         :param parameters: The parameters to supply.
         :type parameters: dict[str, str]
         :return: The result XML DOM.
-        :rtype: minidom.Document
+        :rtype: lxml.etree.XML
         """
         post_values = {
             "securitytoken": self.security_token,
@@ -420,7 +419,7 @@ class ChatboxConnector:
 
         ajax_string = ajax_bytes.decode(self.server_encoding)
         try:
-            return minidom.parseString(ajax_string)
+            return etree.XML(ajax_string)
         except:
             logger.exception("AJAX response parse")
             raise TransferError()
@@ -494,7 +493,7 @@ class ChatboxConnector:
                 self.retry(retry, self.fetch_new_messages)
                 return
         messages_string = messages_bytes.decode(self.server_encoding)
-        messages_soup = bs4.BeautifulSoup(io.StringIO(messages_string), "html.parser")
+        messages = etree.HTML(messages_string)
 
         all_trs = messages_soup.find_all("tr", recursive=False)
         if len(all_trs) == 0:
@@ -673,24 +672,10 @@ class ChatboxConnector:
             # vB doesn't allow usernames shorter than three characters
             return None
 
-        result_dom = self.ajax("usersearch", {"fragment": username})
-        for child in result_dom.documentElement.childNodes:
-            if child.nodeType != child.ELEMENT_NODE:
-                continue
-            if child.localName != "user":
-                continue
-            if not child.hasAttribute("userid"):
-                continue
-
-            user_id = child.getAttribute("userid")
-
-            username_text = ""
-            for textChild in child.childNodes:
-                if textChild.nodeType in (child.TEXT_NODE, child.CDATA_SECTION_NODE):
-                    username_text += textChild.data
-
-            # unescape entities
-            username_text = bs4.BeautifulSoup(username_text, "html.parser").text
+        result = self.ajax("usersearch", {"fragment": username})
+        for child in result.iterfind("./user[@userid]"):
+            user_id = child.attrib["userid"]
+            username_text = "".join(child.itertext())
 
             if username.lower() == username_text.lower():
                 # cache!

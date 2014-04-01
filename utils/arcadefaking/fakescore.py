@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from bs4 import BeautifulSoup
+from lxml.etree import HTML
 from time import sleep
 from urllib.parse import urlencode, urljoin
 import _utils
@@ -15,16 +15,16 @@ def fake(base_url, username, password, game_id, time, score, game_name=None):
     # pretend to play the game
     print("playing the game")
     play_game_response = url_opener.open(play_game_url)
-    soup = BeautifulSoup(play_game_response.read())
+    play_game = HTML(play_game_response.read())
 
     if game_name is None:
         # (meanwhile, find the game's name)
-        game_flash = soup.find("embed", type="application/x-shockwave-flash")
+        game_flash = play_game.find(".//embed[@type='application/x-shockwave-flash']")
         if game_flash is None:
             print("didn't find the flash plugin on the game page :'-(")
             return
 
-        flash_vars = game_flash['flashvars'].split("&")
+        flash_vars = game_flash.attrib['flashvars'].split("&")
         for var in flash_vars:
             if var.startswith("gamename="):
                 game_name = var[len("gamename="):]

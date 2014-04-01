@@ -1,7 +1,6 @@
 import vbcbbot.html_decompiler as hd
 
-from bs4 import BeautifulSoup
-from io import BytesIO
+from lxml.etree import HTML
 import unittest
 
 __author__ = 'ondra'
@@ -11,9 +10,9 @@ class TestDecompileHtml(unittest.TestCase):
     def test_smiley(self):
         s2s = {"img/smiley/multihail.gif": ":multihail:"}
         dec = hd.HtmlDecompiler(s2s)
-        dom = dec.decompile_soup(BeautifulSoup(BytesIO(
+        dom = dec.decompile_lxml(HTML(
             b'!msg user: <img src="img/smiley/multihail.gif">'
-        ), "html.parser"))
+        ))
 
         self.assertEqual(len(dom), 2)
         self.assertTrue(isinstance(dom[0], hd.Text))
