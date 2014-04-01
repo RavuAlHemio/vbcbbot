@@ -83,6 +83,22 @@ def ajax_url_encode_string(string):
     return ret
 
 
+def children_to_string(lxml_tree):
+    """
+    Encode the element and text children of an lxml element into a string.
+    :param lxml_tree: The tree.
+    :return: The string.
+    :rtype: str
+    """
+    ret = []
+    for child in lxml_tree.xpath("./node()"):
+        if hasattr(child, "iterchildren"):
+            ret.append(etree.tostring(child, encoding="unicode"))
+        else:
+            ret.append(child)
+    return "".join(ret)
+
+
 class TransferError(Exception):
     """An error when sending a message to or receiving a message from the chatbox."""
     pass
@@ -127,7 +143,6 @@ class ChatboxMessage:
         :return: A new lxml HTML instance for the username.
         :rtype: lxml.etree.HTML
         """
-        logger.debug("user name body: {0}".format(self.user_name_body))
         return etree.HTML(self.user_name_body)
 
     @property
@@ -553,13 +568,13 @@ class ChatboxConnector:
                 # bah, humbug
                 continue
 
-            nick = nick_element.text
-            nick_code = "".join([str(c) for c in nick_element.iterchildren()])
+            nick = "".join(nick_element.itertext())
+            nick_code = children_to_string(nick_element)
 
             # cache the nickname
             self.lowercase_usernames_to_user_id_name_pairs[nick.lower()] = (user_id, nick)
 
-            message_body = etree.tostring(tds[1], encoding="unicode").strip()
+            message_body = children_to_string(tds[1]).strip()
             message = ChatboxMessage(message_id, user_id, nick_code, message_body, timestamp,
                                      self.html_decompiler)
 
