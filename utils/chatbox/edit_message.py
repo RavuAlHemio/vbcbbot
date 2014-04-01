@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from bs4 import BeautifulSoup
+from lxml.etree import HTML
 from time import sleep
 from urllib.parse import urlencode, urljoin
 import _utils
@@ -41,9 +41,9 @@ def edit_message(base_url, username, password, message_id, new_body):
     # go to the FAQ page (page with low backend complexity) to get the security token
     print("fetching security token")
     faq_response = url_opener.open(faq_url)
-    soup = BeautifulSoup(faq_response.read())
-    token_field = soup.find("input", attrs={"name": "securitytoken"})
-    security_token = token_field.attrs["value"]
+    faq = HTML(faq_response.read())
+    token_field = faq.find(".//input[@name='securitytoken']")
+    security_token = token_field.attrib["value"]
 
     # encode the message
     request_string = \
