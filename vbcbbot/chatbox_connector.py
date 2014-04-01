@@ -533,7 +533,7 @@ class ChatboxConnector:
 
             # fetch the timestamp
             timestamp = time.time()
-            timestamp_match = timestamp_pattern.search(etree.tostring(meta_td))
+            timestamp_match = timestamp_pattern.search(etree.tostring(meta_td, encoding="unicode"))
             if timestamp_match is not None:
                 time_string = timestamp_match.group(1)
                 try:
@@ -558,7 +558,7 @@ class ChatboxConnector:
             # cache the nickname
             self.lowercase_usernames_to_user_id_name_pairs[nick.lower()] = (user_id, nick)
 
-            message_body = etree.tostring(tds[1]).strip()
+            message_body = etree.tostring(tds[1], encoding="unicode").strip()
             message = ChatboxMessage(message_id, user_id, nick_code, message_body, timestamp,
                                      self.html_decompiler)
 
