@@ -553,7 +553,7 @@ class ChatboxConnector:
                 continue
 
             nick = nick_element.text
-            nick_code = "".join([str(c) for c in nick_element.children])
+            nick_code = "".join([str(c) for c in nick_element.iterchildren()])
 
             # cache the nickname
             self.lowercase_usernames_to_user_id_name_pairs[nick.lower()] = (user_id, nick)
