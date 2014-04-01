@@ -495,7 +495,7 @@ class ChatboxConnector:
         messages_string = messages_bytes.decode(self.server_encoding)
         messages = etree.HTML(messages_string)
 
-        all_trs = messages.iterfind("./body/tr")
+        all_trs = list(messages.iterfind("./body/tr"))
         if len(all_trs) == 0:
             # aw crap
             self.retry(retry, self.fetch_new_messages)
