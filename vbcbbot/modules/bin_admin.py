@@ -37,6 +37,9 @@ class BinAdmin(Module):
     """Remembers "something -> somethingTonneSomething"."""
 
     def message_received_on_new_connection(self, message):
+        if message.user_name in self.banned:
+            return
+
         body = message.decompiled_body()
 
         if body.startswith("!"):
@@ -86,6 +89,9 @@ class BinAdmin(Module):
 
     def message_received(self, message):
         """Called by the communicator when a new message has been received."""
+
+        if message.user_name in self.banned:
+            return
 
         # extract text and strip
         body = message.decompiled_body().strip()
@@ -180,6 +186,12 @@ class BinAdmin(Module):
             self.database = sqlite3.connect(config_section["database"], check_same_thread=False)
         else:
             self.database = sqlite3.connect(":memory:", check_same_thread=False)
+
+        self.banned = set()
+        if "banned" in config_section:
+            for nick_line in config_section["banned"].split("\n"):
+                nick = nick_line.strip()
+                self.banned.add(nick)
 
         cursor = self.database.cursor()
         cursor.execute("""
