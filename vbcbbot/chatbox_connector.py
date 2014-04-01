@@ -127,6 +127,7 @@ class ChatboxMessage:
         :return: A new lxml HTML instance for the username.
         :rtype: lxml.etree.HTML
         """
+        logger.debug("user name body: {0}".format(self.user_name_body))
         return etree.HTML(self.user_name_body)
 
     @property
