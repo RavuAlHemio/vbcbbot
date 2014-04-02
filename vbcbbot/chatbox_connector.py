@@ -95,7 +95,23 @@ def children_to_string(lxml_tree):
         if hasattr(child, "iterchildren"):
             ret.append(etree.tostring(child, encoding="unicode", with_tail=False))
         else:
-            ret.append(child)
+            new_child = ""
+            for c in child:
+                if c == "&":
+                    new_child += "&amp;"
+                elif c == '"':
+                    new_child += "&quot;"
+                elif c == "'":
+                    new_child += "&apos;"
+                elif c == "<":
+                    new_child += "&lt;"
+                elif c == ">":
+                    new_child += "&gt;"
+                elif ord(c) > 0x7E:
+                    new_child += "&#{0};".format(ord(c))
+                else:
+                    new_child += c
+            ret.append(new_child)
     return "".join(ret)
 
 
