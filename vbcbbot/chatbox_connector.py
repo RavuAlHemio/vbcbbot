@@ -258,6 +258,7 @@ class ChatboxConnector:
                                                name="ChatboxConnector reading")
 
         # "declare" these variables for later
+        self.banned_nicknames = set()
         self.new_message_subscribers = set()
         self.new_message_from_salvo_subscribers = set()
         self.message_modified_subscribers = set()
@@ -586,6 +587,10 @@ class ChatboxConnector:
 
             nick = "".join(nick_element.itertext())
             nick_code = children_to_string(nick_element)
+
+            if nick in self.banned_nicknames:
+                # b&
+                continue
 
             # cache the nickname
             self.lowercase_usernames_to_user_id_name_pairs[nick.lower()] = (user_id, nick)

@@ -32,6 +32,12 @@ def run():
         forum_username = section['username']
         forum_password = section['password']
 
+        bans = set()
+        if 'banned' in section:
+            for nick_line in section['banned'].split("\n"):
+                nick = nick_line.strip()
+                bans.add(nick)
+
         html_decompiler = None
         if 'html decompiler' in config:
             hd_section = config['html decompiler']
@@ -43,6 +49,7 @@ def run():
 
         # create the connector
         conn = ChatboxConnector(forum_url, forum_username, forum_password, html_decompiler)
+        conn.banned_nicknames = bans
 
         # load the modules
         loaded_modules = set()
