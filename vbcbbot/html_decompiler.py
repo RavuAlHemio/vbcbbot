@@ -19,6 +19,9 @@ class Node:
     def has_children(self):
         return self.is_element()
 
+    def verbatim_string(self):
+        raise NotImplementedError("this subclass didn't implement verbatim_string")
+
 
 class Element(Node):
     def __init__(self, name, children, attribute_value=None):
@@ -44,6 +47,16 @@ class Element(Node):
     def is_element():
         return True
 
+    def verbatim_string(self):
+        if self.attribute_value is not None:
+            av = "={0}".format(self.attribute_value.replace("[", "[noparse][[/noparse]"))
+        else:
+            av = ""
+
+        return "[noparse][[/noparse]{n}{av}]{c}[noparse][[/noparse]/{n}]".format(
+            n=self.name, av=av, c="".join([child.verbatim_string for child in self.children])
+        )
+
 
 class ListItem(Node):
     def __init__(self, children):
@@ -54,6 +67,9 @@ class ListItem(Node):
 
     def __repr__(self):
         return "ListItem({0})".format(repr(self.children))
+
+    def verbatim_string(self):
+        return "[noparse][*][/noparse]" + "".join([child.verbatim_string for child in self.children])
 
 
 class Text(Node):
@@ -70,6 +86,9 @@ class Text(Node):
     def is_text():
         return True
 
+    def verbatim_string(self):
+        return self.text.replace("[", "[noparse][[/noparse]")
+
 
 class SmileyText(Text):
     def __init__(self, text, smiley_url=None):
@@ -78,6 +97,9 @@ class SmileyText(Text):
 
     def __repr__(self):
         return "SmileyText({0}, {1})".format(repr(self.text), repr(self.smiley_url))
+
+    def verbatim_string(self):
+        return "[noparse]{0}[/noparse]".format(self.text)
 
 
 def join_adjacent_text_nodes(dom_list):
