@@ -54,7 +54,7 @@ class LastSeenApi(Module):
                 "{0}: The great and powerful [i]signanz[/i] doesn't remember seeing "
                 "[i]{1}[/i].".format(
                     message.user_name,
-                    nickname.replace("[", "[noparse][[/noparse]")
+                    self.connector.escape_outgoing_text(nickname)
                 )
             )
             return
