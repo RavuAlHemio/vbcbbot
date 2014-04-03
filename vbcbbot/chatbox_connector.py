@@ -378,6 +378,20 @@ class ChatboxConnector:
                     ret += "%26%23{0}%3B".format(ord(c))
         return ret
 
+    def escape_outgoing_text(self, text):
+        """
+        Escape questionable content (BBCode and smilies) from the given outgoing message.
+        :param text: The text to escape.
+        :return: The escaped text
+        """
+        ret = text.replace("[", "[noparse][[/noparse]")
+
+        smilies_by_length = sorted(self.smiley_codes_to_urls.keys(), key=lambda k: (-len(k), k))
+        for smiley in smilies_by_length:
+            ret = ret.replace(smiley, "[noparse]{0}[/noparse]".format(smiley))
+
+        return ret
+
     def retry(self, retry_count, func, *pos_args, **kw_args):
         """
         Renew some information and try calling the function again.
