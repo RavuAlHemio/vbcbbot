@@ -340,7 +340,7 @@ class ChatboxConnector:
         smileys = etree.HTML(smileys_page_string)
 
         sel_smilie_bit = CSSSelector("li.smiliebit")
-        sel_smilie_text = CSSSelector("li.smilietext")
+        sel_smilie_text = CSSSelector("div.smilietext")
         sel_smilie_image = CSSSelector("div.smilieimage img")
 
         code_to_url = {}
