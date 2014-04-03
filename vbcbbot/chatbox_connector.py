@@ -464,9 +464,8 @@ class ChatboxConnector:
             # something failed
             return self.retry(retry, self.ajax, operation, parameters)
 
-        ajax_string = ajax_bytes.decode(self.server_encoding)
         try:
-            return etree.XML(ajax_string)
+            return etree.XML(ajax_bytes)
         except:
             logger.exception("AJAX response parse")
             raise TransferError()
