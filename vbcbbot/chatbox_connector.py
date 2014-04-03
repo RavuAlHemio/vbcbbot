@@ -5,6 +5,7 @@ import http.cookiejar as cj
 import io
 import logging
 from lxml import etree
+from lxml.cssselect import CSSSelector
 import re
 import socket
 import threading
@@ -338,12 +339,16 @@ class ChatboxConnector:
         # lxml!
         smileys = etree.HTML(smileys_page_string)
 
+        sel_smilie_bit = CSSSelector("li.smiliebit")
+        sel_smilie_text = CSSSelector("li.smilietext")
+        sel_smilie_image = CSSSelector("div.smilieimage img")
+
         code_to_url = {}
         url_to_code = {}
 
-        for smilie_bit in smileys.findall(".//li[@class='smiliebit']"):
-            code = "".join(smilie_bit.find(".//div[@class='smilietext']").itertext())
-            image = smilie_bit.find(".//div[@class='smilieimage']//img[@src]").find("img", src=True)
+        for smilie_bit in sel_smilie_bit(smileys):
+            code = "".join(sel_smilie_text(smilie_bit)[0].itertext())
+            image = sel_smilie_image(smilie_bit)[0]
             url = image.attrib["src"]
 
             code_to_url[code] = url
