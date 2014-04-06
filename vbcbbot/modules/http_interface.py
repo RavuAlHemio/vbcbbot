@@ -190,7 +190,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                             escape_quotes=True, escape_apostrophes=False
                         )
                     ),
-                    '<img src="{u}" title="{c}"/>'.format(
+                    '<img class="smiley picksmiley" src="{u}" title="{c}"/>'.format(
                         c=html_escape(smiley_code),
                         u=html_escape(urljoin(
                             self.http_interface.connector.base_url, smiley_image_url
