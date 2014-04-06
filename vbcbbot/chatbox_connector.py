@@ -763,7 +763,7 @@ class ChatboxConnector:
     def substitute_custom_smileys(self, message):
         ret = message
         for (code, url) in self.custom_smiley_codes_to_urls.items():
-            ret = ret.replace(code, "[icon]{0}[/icon]".format(code))
+            ret = ret.replace(code, "[icon]{0}[/icon]".format(url))
         return ret
 
 if __name__ == '__main__':
