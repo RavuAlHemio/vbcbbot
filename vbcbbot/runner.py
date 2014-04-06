@@ -38,6 +38,17 @@ def run():
                 nick = nick_line.strip()
                 bans.add(nick)
 
+        custom_smiley_to_url = {}
+        custom_url_to_smiley = {}
+        if 'custom smileys' in section:
+            for smiley_line in section['custom smileys'].split("\n"):
+                pieces = smiley_line.strip().split(" ")
+                if len(pieces) != 2:
+                    continue
+                smiley, url = pieces[0], pieces[1]
+                custom_smiley_to_url[smiley] = url
+                custom_url_to_smiley[url] = smiley
+
         html_decompiler = None
         if 'html decompiler' in config:
             hd_section = config['html decompiler']
@@ -50,6 +61,8 @@ def run():
         # create the connector
         conn = ChatboxConnector(forum_url, forum_username, forum_password, html_decompiler)
         conn.banned_nicknames = bans
+        conn.custom_smiley_codes_to_urls = custom_smiley_to_url
+        conn.custom_smiley_urls_to_codes = custom_url_to_smiley
 
         # load the modules
         loaded_modules = set()

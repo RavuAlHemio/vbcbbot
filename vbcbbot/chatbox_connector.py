@@ -265,14 +265,30 @@ class ChatboxConnector:
         self.message_modified_subscribers = set()
         self.old_message_ids_to_bodies = {}
         self.lowercase_usernames_to_user_id_name_pairs = {}
-        self.smiley_codes_to_urls = {}
-        self.smiley_urls_to_codes = {}
+        self.forum_smiley_codes_to_urls = {}
+        self.forum_smiley_urls_to_codes = {}
+        self.custom_smiley_codes_to_urls = {}
+        self.custom_smiley_urls_to_codes = {}
         self.initial_salvo = True
         self.security_token = None
         self.last_message_received = -1
         self.stop_reading = False
         self.stfu_deadline = None
         """:type: int|None"""
+
+    @property
+    def smiley_codes_to_urls(self):
+        ret = {}
+        ret.update(self.forum_smiley_codes_to_urls)
+        ret.update(self.custom_smiley_codes_to_urls)
+        return ret
+
+    @property
+    def smiley_urls_to_codes(self):
+        ret = {}
+        ret.update(self.forum_smiley_urls_to_codes)
+        ret.update(self.custom_smiley_urls_to_codes)
+        return ret
 
     def start(self):
         self.login()
@@ -355,11 +371,11 @@ class ChatboxConnector:
             url_to_code[url] = code
 
         if len(code_to_url) > 0 and len(url_to_code) > 0:
-            self.smiley_codes_to_urls = code_to_url
-            self.smiley_urls_to_codes = url_to_code
+            self.forum_smiley_codes_to_urls = code_to_url
+            self.forum_smiley_urls_to_codes = url_to_code
 
-            # update this one too
-            self.html_decompiler.smiley_url_to_symbol = url_to_code
+            # update this one too (to the combination)
+            self.html_decompiler.smiley_url_to_symbol = self.smiley_urls_to_codes
 
     def encode_outgoing_message(self, outgoing_message):
         """
@@ -391,7 +407,7 @@ class ChatboxConnector:
         """
         ret = text.replace("[", "[noparse][[/noparse]")
 
-        smilies_by_length = sorted(self.smiley_codes_to_urls.keys(), key=lambda k: (-len(k), k))
+        smilies_by_length = sorted(self.forum_smiley_codes_to_urls.keys(), key=lambda k: (-len(k), k))
         for smiley in smilies_by_length:
             ret = ret.replace(smiley, "[noparse]{0}[/noparse]".format(smiley))
 
@@ -475,7 +491,7 @@ class ChatboxConnector:
             logger.exception("AJAX response parse")
             raise TransferError()
 
-    def send_message(self, message, bypass_stfu=False, bypass_filters=False, retry=0):
+    def send_message(self, message, bypass_stfu=False, bypass_filters=False, custom_smileys=False, retry=0):
         """
         Send the given message to the server.
         :param message: The message to send.
@@ -484,6 +500,9 @@ class ChatboxConnector:
         if not bypass_stfu and self.should_stfu():
             logger.debug("I've been shut up; not posting message {0}".format(repr(message)))
             return
+
+        if custom_smileys:
+            message = self.substitute_custom_smileys(message)
 
         if not bypass_filters:
             message = filter_combining_mark_clusters(message)
@@ -507,7 +526,7 @@ class ChatboxConnector:
 
         if post_response.status != 200 or len(post_response_body) != 0:
             # something failed
-            self.retry(retry, self.send_message, message, bypass_stfu, bypass_filters)
+            self.retry(retry, self.send_message, message, bypass_stfu, bypass_filters, custom_smileys)
             return
 
     def edit_message(self, message_id, new_body):
@@ -740,6 +759,12 @@ class ChatboxConnector:
 
         # not found
         return None
+
+    def substitute_custom_smileys(self, message):
+        ret = message
+        for (code, url) in self.custom_smiley_codes_to_urls.items():
+            ret = ret.replace(code, "[icon]{0}[/icon]".format(code))
+        return ret
 
 if __name__ == '__main__':
     def message_received(message):

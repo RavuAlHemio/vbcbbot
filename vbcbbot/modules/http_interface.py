@@ -264,7 +264,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 self.send_plaintext_response(400, b"You must specify the message body.")
                 return
 
-            self.http_interface.connector.send_message(values["message"])
+            self.http_interface.connector.send_message(values["message"], custom_smileys=True)
 
             self.send_response(303)
             self.send_header("Location", "/")
