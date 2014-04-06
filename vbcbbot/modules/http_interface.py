@@ -139,7 +139,8 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
         if self.path == "/":
             # output the chatbox form
-            self.send_ok_html_response(self.http_interface.page_template.encode("utf-8"))
+            page = self.http_interface.page_template.replace("%%NICKNAME%%", self.http_interface.connector.username)
+            self.send_ok_html_response(page.encode("utf-8"))
         elif self.path == "/messages":
             # output the messages as a chunk
             all_messages = b""
