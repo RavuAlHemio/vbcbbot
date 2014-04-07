@@ -51,18 +51,25 @@ def js_escape_string(s, escape_quotes=True, escape_apostrophes=False):
     return ret
 
 
+def robust_urljoin(base, tail):
+    try:
+        return urljoin(base, tail)
+    except ValueError:
+        return tail
+
+
 def dom_to_html(body_dom, base_url):
     ret = ""
     for node in body_dom:
         if node.is_element():
             if node.name == "url":
                 ret += '<a class="url" href="{url}">{inside}</a>'.format(
-                    url=html_escape(urljoin(base_url, node.attribute_value)),
+                    url=html_escape(robust_urljoin(base_url, node.attribute_value)),
                     inside=dom_to_html(node.children, base_url)
                 )
             elif node.name == "icon":
                 ret += '<a class="iconlink" href="{src}"><img class="icon" src="{src}" /></a>'.format(
-                    src=html_escape(urljoin(base_url, node.children[0].text))
+                    src=html_escape(robust_urljoin(base_url, node.children[0].text))
                 )
             elif node.name in "biu":
                 ret += '<{n}>{inside}</{n}>'.format(
@@ -91,7 +98,7 @@ def dom_to_html(body_dom, base_url):
                 ret += html_escape(node)
         elif isinstance(node, SmileyText):
             ret += '<img class="smiley" src="{src}" alt="{smiley}" />'.format(
-                src=html_escape(urljoin(base_url, node.smiley_url)), smiley=html_escape(node.text)
+                src=html_escape(robust_urljoin(base_url, node.smiley_url)), smiley=html_escape(node.text)
             )
         else:
             ret += html_escape(node)
@@ -147,7 +154,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
             with self.http_interface.message_lock:
                 for message in self.http_interface.messages:
-                    sender_info_url = urljoin(
+                    sender_info_url = robust_urljoin(
                         self.http_interface.connector.base_url,
                         "member.php?u={0}".format(message.user_id)
                     )
@@ -192,7 +199,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                     ),
                     '<img class="smiley picksmiley" src="{u}" title="{c}"/>'.format(
                         c=html_escape(smiley_code),
-                        u=html_escape(urljoin(
+                        u=html_escape(robust_urljoin(
                             self.http_interface.connector.base_url, smiley_image_url
                         ))
                     ),
