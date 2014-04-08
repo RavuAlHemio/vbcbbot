@@ -53,7 +53,11 @@ class Messenger(Module):
             return
 
         recipient_and_message = match.group(2)
-        (target_name, send_body) = split_recipient_and_message(recipient_and_message)
+        try:
+            (target_name, send_body) = split_recipient_and_message(recipient_and_message)
+        except ValueError as e:
+            self.connector.send_message(str(e))
+            return
 
         target_name = target_name.strip()
         lower_target_name = target_name.lower()
