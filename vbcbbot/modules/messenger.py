@@ -77,7 +77,7 @@ class Messenger(Module):
             colon_info = ""
             if ":" in send_body:
                 colon_info = " (You may escape colons in usernames using a backslash.)"
-            else:
+            elif len(target_name) > 32:
                 colon_info = " (You must place a colon between the username and the message.)"
             self.connector.send_message(
                 "Sorry, I don\u2019t know \u201c{0}\u201d.".format(target_name) + colon_info
