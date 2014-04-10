@@ -625,7 +625,7 @@ class ChatboxConnector:
             nick = "".join(nick_element.itertext())
             nick_code = children_to_string(nick_element)
 
-            if nick in self.banned_nicknames:
+            if nick.lower() in self.banned_nicknames:
                 # b&
                 continue
 

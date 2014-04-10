@@ -35,7 +35,7 @@ def run():
         bans = set()
         if 'banned' in section:
             for nick_line in section['banned'].split("\n"):
-                nick = nick_line.strip()
+                nick = nick_line.strip().lower()
                 bans.add(nick)
 
         custom_smiley_to_url = {}
