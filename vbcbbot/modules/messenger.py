@@ -66,6 +66,9 @@ class Messenger(Module):
         if lower_target_name == self.connector.username.lower():
             self.connector.send_message("Sorry, I don\u2019t deliver to myself!")
             return
+        elif lower_target_name in self.connector.banned_nicknames:
+            self.connector.send_message("Sorry, but I\u2019ve been told to ignore \u201c{0}\u201d.".format(target_name))
+            return
 
         user_info = None
         try:
