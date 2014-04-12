@@ -529,12 +529,22 @@ class ChatboxConnector:
             self.retry(retry, self.send_message, message, bypass_stfu, bypass_filters, custom_smileys)
             return
 
-    def edit_message(self, message_id, new_body):
+    def edit_message(self, message_id, new_body, bypass_stfu=True, bypass_filters=False, custom_smileys=False):
         """
         Edits a previously posted chatbox message.
         :param message_id: The ID of the message to modify.
         :return: The new body of the message.
         """
+        if not bypass_stfu and self.should_stfu():
+            logger.debug("I've been shut up; not editing message {0}".format(repr(message)))
+            return
+
+        if custom_smileys:
+            message = self.substitute_custom_smileys(message)
+
+        if not bypass_filters:
+            message = filter_combining_mark_clusters(message)
+
         logger.debug("editing message {0} to {1}".format(message_id, repr(new_body)))
         request_string = \
             "do=vsacb_editmessage&s=&securitytoken={0}&id={1}&vsacb_editmessage={2}".format(
