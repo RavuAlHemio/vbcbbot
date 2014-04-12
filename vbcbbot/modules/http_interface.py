@@ -141,158 +141,166 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(body_bytes)
 
     def do_GET(self):
-        if not self.check_auth():
-            return
-
-        if self.path == "/":
-            # output the chatbox form
-            page = self.http_interface.page_template.replace("%%NICKNAME%%", self.http_interface.connector.username)
-            self.send_ok_html_response(page.encode("utf-8"))
-        elif self.path == "/messages":
-            # output the messages as a chunk
-            all_messages = b""
-
-            with self.http_interface.message_lock:
-                for message in self.http_interface.messages:
-                    sender_info_url = robust_urljoin(
-                        self.http_interface.connector.base_url,
-                        "member.php?u={0}".format(message.user_id)
-                    )
-                    sender_name = dom_to_html(
-                        message.decompiled_user_name_dom(),
-                        self.http_interface.connector.base_url
-                    )
-                    if message.user_name == self.http_interface.connector.username:
-                        # it's me
-                        sender_name = '<span class="myself">{0}</span>'.format(sender_name)
-                    output_string = self.http_interface.post_template.format(
-                        message_id=html_escape(message.id), sender_id=html_escape(message.user_id),
-                        sender_name=sender_name,
-                        sender_info_url=html_escape(sender_info_url),
-                        time=time.strftime("%Y-%m-%d %H:%M", time.localtime(message.timestamp)),
-                        body=dom_to_html(
-                            message.decompiled_body_dom(),
-                            self.http_interface.connector.base_url
-                        )
-                    )
-                    all_messages += output_string.encode("utf-8")
-
-            self.send_ok_html_response(all_messages)
-
-        elif self.path == "/smilies":
-            smiley_string = '<span class="smileylist">'
-            smiley_string += '<a class="jsclick" onclick="hideSmilies()">Hide!</a>'
-
-            for (smiley_code, smiley_image_url) in sorted(
-                self.http_interface.connector.smiley_codes_to_urls.items()
-            ):
-                smiley_string += "".join([
-                    ' ',
-                    '<span class="smiley">',
-                    '<a class="jsclick" onclick="smileyClicked(\'{c}\')">'.format(
-                        c=html_escape(
-                            js_escape_string(
-                                smiley_code, escape_quotes=False, escape_apostrophes=True
-                            ),
-                            escape_quotes=True, escape_apostrophes=False
-                        )
-                    ),
-                    '<img class="smiley picksmiley" src="{u}" title="{c}"/>'.format(
-                        c=html_escape(smiley_code),
-                        u=html_escape(robust_urljoin(
-                            self.http_interface.connector.base_url, smiley_image_url
-                        ))
-                    ),
-                    '</a>',
-                    '</span>'
-                ])
-
-            smiley_string += '</span>'
-
-            self.send_ok_html_response(smiley_string.encode("utf-8"))
-
-        elif editor_regex.match(self.path):
-            # editor
-            message_number = int(editor_regex.last_match.group(1))
-            message_to_edit = None
-
-            # find that message
-            with self.http_interface.message_lock:
-                for message in self.http_interface.messages:
-                    if message.id == message_number:
-                        message_to_edit = message
-                        break
-
-            current_message_body = ""
-            if message_to_edit is not None:
-                current_message_body = message_to_edit.decompiled_body()
-
-            output_string = self.http_interface.editor_template.format(
-                message_id=html_escape(message_number), body=html_escape(current_message_body)
-            )
-            output_bytes = output_string.encode("utf-8")
-
-            self.send_ok_html_response(output_bytes)
-
-        else:
-            body = None
-            if self.path[1:] in self.http_interface.allowed_files:
-                try:
-                    with open(self.path[1:], "rb") as f:
-                        body = f.read()
-                except FileNotFoundError:
-                    # body remains None
-                    pass
-
-            if body is None:
-                self.send_plaintext_response(404, b"No such file or directory!")
-            else:
-                self.send_response(200)
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
-
-    def do_POST(self):
-        if not self.check_auth():
-            return
-
-        length = int(self.headers["Content-Length"])
-        post_body_bytes = self.rfile.read(length)
-        post_body = post_body_bytes.decode("utf-8")
-
-        values = {}
-        for key_val_string in post_body.split("&"):
-            key_val = key_val_string.split("=", 1)
-            if len(key_val) == 2:
-                values[key_val[0]] = unquote_plus(key_val[1])
-
-        if self.path == "/postmessage":
-            if "message" not in values or len(values["message"]) == 0:
-                self.send_plaintext_response(400, b"You must specify the message body.")
+        try:
+            if not self.check_auth():
                 return
 
-            self.http_interface.connector.send_message(values["message"], custom_smileys=True)
+            if self.path == "/":
+                # output the chatbox form
+                page = self.http_interface.page_template.replace("%%NICKNAME%%", self.http_interface.connector.username)
+                self.send_ok_html_response(page.encode("utf-8"))
+            elif self.path == "/messages":
+                # output the messages as a chunk
+                all_messages = b""
 
-            self.send_response(303)
-            self.send_header("Location", "/")
-            self.end_headers()
+                with self.http_interface.message_lock:
+                    for message in self.http_interface.messages:
+                        sender_info_url = robust_urljoin(
+                            self.http_interface.connector.base_url,
+                            "member.php?u={0}".format(message.user_id)
+                        )
+                        sender_name = dom_to_html(
+                            message.decompiled_user_name_dom(),
+                            self.http_interface.connector.base_url
+                        )
+                        if message.user_name == self.http_interface.connector.username:
+                            # it's me
+                            sender_name = '<span class="myself">{0}</span>'.format(sender_name)
+                        output_string = self.http_interface.post_template.format(
+                            message_id=html_escape(message.id), sender_id=html_escape(message.user_id),
+                            sender_name=sender_name,
+                            sender_info_url=html_escape(sender_info_url),
+                            time=time.strftime("%Y-%m-%d %H:%M", time.localtime(message.timestamp)),
+                            body=dom_to_html(
+                                message.decompiled_body_dom(),
+                                self.http_interface.connector.base_url
+                            )
+                        )
+                        all_messages += output_string.encode("utf-8")
 
-        elif self.path == "/editmessage":
-            if "message_id" not in values or len(values["message_id"]) == 0 \
-                    or "new_body" not in values or len(values["new_body"]) == 0:
-                self.send_plaintext_response(
-                    400, b"You must specify the message ID and the new body."
+                self.send_ok_html_response(all_messages)
+
+            elif self.path == "/smilies":
+                smiley_string = '<span class="smileylist">'
+                smiley_string += '<a class="jsclick" onclick="hideSmilies()">Hide!</a>'
+
+                for (smiley_code, smiley_image_url) in sorted(
+                    self.http_interface.connector.smiley_codes_to_urls.items()
+                ):
+                    smiley_string += "".join([
+                        ' ',
+                        '<span class="smiley">',
+                        '<a class="jsclick" onclick="smileyClicked(\'{c}\')">'.format(
+                            c=html_escape(
+                                js_escape_string(
+                                    smiley_code, escape_quotes=False, escape_apostrophes=True
+                                ),
+                                escape_quotes=True, escape_apostrophes=False
+                            )
+                        ),
+                        '<img class="smiley picksmiley" src="{u}" title="{c}"/>'.format(
+                            c=html_escape(smiley_code),
+                            u=html_escape(robust_urljoin(
+                                self.http_interface.connector.base_url, smiley_image_url
+                            ))
+                        ),
+                        '</a>',
+                        '</span>'
+                    ])
+
+                smiley_string += '</span>'
+
+                self.send_ok_html_response(smiley_string.encode("utf-8"))
+
+            elif editor_regex.match(self.path):
+                # editor
+                message_number = int(editor_regex.last_match.group(1))
+                message_to_edit = None
+
+                # find that message
+                with self.http_interface.message_lock:
+                    for message in self.http_interface.messages:
+                        if message.id == message_number:
+                            message_to_edit = message
+                            break
+
+                current_message_body = ""
+                if message_to_edit is not None:
+                    current_message_body = message_to_edit.decompiled_body()
+
+                output_string = self.http_interface.editor_template.format(
+                    message_id=html_escape(message_number), body=html_escape(current_message_body)
                 )
-            elif not values["message_id"].isnumeric():
-                self.send_plaintext_response(400, b"Message ID must be numeric.")
+                output_bytes = output_string.encode("utf-8")
+
+                self.send_ok_html_response(output_bytes)
+
             else:
-                self.http_interface.connector.edit_message(
-                    int(values["message_id"]), values["new_body"], custom_smileys=True
-                )
+                body = None
+                if self.path[1:] in self.http_interface.allowed_files:
+                    try:
+                        with open(self.path[1:], "rb") as f:
+                            body = f.read()
+                    except FileNotFoundError:
+                        # body remains None
+                        pass
+
+                if body is None:
+                    self.send_plaintext_response(404, b"No such file or directory!")
+                else:
+                    self.send_response(200)
+                    self.send_header("Content-Length", str(len(body)))
+                    self.end_headers()
+                    self.wfile.write(body)
+        except:
+            logger.exception("handling GET request")
+            raise
+
+    def do_POST(self):
+        try:
+            if not self.check_auth():
+                return
+
+            length = int(self.headers["Content-Length"])
+            post_body_bytes = self.rfile.read(length)
+            post_body = post_body_bytes.decode("utf-8")
+
+            values = {}
+            for key_val_string in post_body.split("&"):
+                key_val = key_val_string.split("=", 1)
+                if len(key_val) == 2:
+                    values[key_val[0]] = unquote_plus(key_val[1])
+
+            if self.path == "/postmessage":
+                if "message" not in values or len(values["message"]) == 0:
+                    self.send_plaintext_response(400, b"You must specify the message body.")
+                    return
+
+                self.http_interface.connector.send_message(values["message"], custom_smileys=True)
 
                 self.send_response(303)
                 self.send_header("Location", "/")
                 self.end_headers()
+
+            elif self.path == "/editmessage":
+                if "message_id" not in values or len(values["message_id"]) == 0 \
+                        or "new_body" not in values or len(values["new_body"]) == 0:
+                    self.send_plaintext_response(
+                        400, b"You must specify the message ID and the new body."
+                    )
+                elif not values["message_id"].isnumeric():
+                    self.send_plaintext_response(400, b"Message ID must be numeric.")
+                else:
+                    self.http_interface.connector.edit_message(
+                        int(values["message_id"]), values["new_body"], custom_smileys=True
+                    )
+
+                    self.send_response(303)
+                    self.send_header("Location", "/")
+                    self.end_headers()
+        except:
+            logger.exception("handling POST request")
+            raise
 
 
 class HttpInterface(Module):
