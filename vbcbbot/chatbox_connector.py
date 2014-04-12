@@ -536,14 +536,14 @@ class ChatboxConnector:
         :return: The new body of the message.
         """
         if not bypass_stfu and self.should_stfu():
-            logger.debug("I've been shut up; not editing message {0}".format(repr(message)))
+            logger.debug("I've been shut up; not editing message {0} to {1}".format(repr(message_id, new_body)))
             return
 
         if custom_smileys:
-            message = self.substitute_custom_smileys(message)
+            new_body = self.substitute_custom_smileys(new_body)
 
         if not bypass_filters:
-            message = filter_combining_mark_clusters(message)
+            new_body = filter_combining_mark_clusters(new_body)
 
         logger.debug("editing message {0} to {1}".format(message_id, repr(new_body)))
         request_string = \
