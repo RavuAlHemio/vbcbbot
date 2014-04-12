@@ -287,7 +287,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 self.send_plaintext_response(400, b"Message ID must be numeric.")
             else:
                 self.http_interface.connector.edit_message(
-                    int(values["message_id"]), values["new_body"]
+                    int(values["message_id"]), values["new_body"], custom_smileys=True
                 )
 
                 self.send_response(303)
