@@ -111,13 +111,13 @@ class Thanks(Module):
             stat_string = ""
             if show_stats:
                 cursor.execute(
-                    "SELECT thanker, thank_count FROM thanks WHERE thankee_folded=? ORDER BY thank_count DESC LIMIT 5",
-                    (lower_nickname,)
+                    "SELECT thanker, thank_count FROM thanks WHERE thankee_folded=? ORDER BY thank_count DESC LIMIT ?",
+                    (lower_nickname, self.most_grateful_count)
                 )
                 grateful_counts = []
                 for row in cursor:
                     grateful_counts.append("{0}: {1}\u00D7".format(row[0], row[1]))
-                stat_string = " (Most grateful: {0})".format(", ".join(grateful_counts))
+                stat_string = " (Most grateful {0}: {1})".format(self.most_grateful_count, ", ".join(grateful_counts))
 
             self.connector.send_message(
                 "{0}: {1} has {2} until now.{3}".format(
@@ -141,6 +141,10 @@ class Thanks(Module):
             self.database = sqlite3.connect(config_section["database"], check_same_thread=False)
         else:
             self.database = sqlite3.connect(":memory:", check_same_thread=False)
+
+        self.most_grateful_count = 5
+        if "most grateful count" in config_section:
+            self.most_grateful_count = int(config_section["most grateful count"])
 
         cursor = self.database.cursor()
         cursor.execute("""
