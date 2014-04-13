@@ -251,11 +251,12 @@ class HtmlDecompiler:
                         ret.append(Element("right", self.decompile_lxml(child)))
                     elif child.attrib["style"] == "margin:5px; margin-top:5px;width:auto":
                         # why don't spoilers have a rational CSS class? -.-
-                        spoiler_marker_element = child.xpath("./div[@class='smallfont']")
-                        if "Spoiler" in "".join(spoiler_marker_element.itertext()):
-                            spoiler_pre_element = child.xpath("./pre[@class='alt2']")
-                            spoiler_text = "".join(spoiler_pre_element.itertext())
-                            ret.append(Element("spoiler", [Text(spoiler_text)]))
+                        spoiler_marker_elements = child.xpath("./div[@class='smallfont']")
+                        if len(spoiler_marker_elements) > 0 and "Spoiler" in "".join(spoiler_marker_elements[0].itertext()):
+                            spoiler_pre_elements = child.xpath("./pre[@class='alt2']")
+                            if len(spoiler_pre_elements) > 0:
+                                spoiler_text = "".join(spoiler_pre_elements[0].itertext())
+                                ret.append(Element("spoiler", [Text(spoiler_text)]))
 
                 elif child.tag == "div" and "class" in child.attrib:
                     if child.attrib["class"] == "bbcode_container":
