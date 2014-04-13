@@ -121,7 +121,7 @@ class Thanks(Module):
                 # mention that the list is truncated if there might be more than self.most_grateful_count
                 count_string = ""
                 if len(grateful_counts) == self.most_grateful_count:
-                    count_string = " {0}".format(self.most_grateful_count)
+                    count_string = " {0}".format(self.most_grateful_count_text)
 
                 stat_string = " (Most grateful{0}: {1})".format(count_string, ", ".join(grateful_counts))
 
@@ -149,8 +149,12 @@ class Thanks(Module):
             self.database = sqlite3.connect(":memory:", check_same_thread=False)
 
         self.most_grateful_count = 5
+        self.most_grateful_count_text = "five"
         if "most grateful count" in config_section:
             self.most_grateful_count = int(config_section["most grateful count"])
+            self.most_grateful_count_text = "{0}".format(self.most_grateful_count)
+        if "most grateful count text" in config_section:
+            self.most_grateful_count_text = config_section["most grateful count text"]
 
         cursor = self.database.cursor()
         cursor.execute("""
