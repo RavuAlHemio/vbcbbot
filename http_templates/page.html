@@ -6,9 +6,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <style type="text/css">
 body { font-family: sans-serif; }
-#messageinput, #sendbutton { box-sizing: border-box; width: 100%; border: 1px solid #eee; border-radius: 15px; height: 30px; padding-left: 10px; padding-right: 10px; margin: 0px; }
+.textinput, button { box-sizing: border-box; border: 1px solid #eee; border-radius: 15px; height: 30px; padding-left: 10px; padding-right: 10px; margin: 0px; }
+#messageinput, #sendbutton { width: 100%; }
 #messageinput { background-color: #fff; }
-#sendbutton { background-color: #eee; }
+button { background-color: #eee; }
 .sendername a:link, .sendername a:visited, .editlink a:link, .editlink a:visited { text-decoration: none; color: black; }
 .sendername a:link .myself, .sendername a:visited .myself, .editlink a:link .myself, .editlink a:visited .myself { color: blue; }
 .icon, .smiley { max-height: 4em; }
@@ -26,7 +27,7 @@ function smiliesFetched() {
 }
 
 function hideSmilies() {
-  document.getElementById('smilies').innerHTML = '<a class="jsclick" onclick="fetchSmilies()">Smile!</a>';
+  document.getElementById('smilies').innerHTML = '<button type="button" onclick="fetchSmilies()">Smile!</button>';
 }
 
 function smileyClicked(smiley) {
@@ -54,16 +55,26 @@ function fetchSmilies() {
   req.send();
 }
 
+function sendQuick(msg) {
+  var req = new XMLHttpRequest();
+  var body = "message=" + encodeURIComponent(msg);
+  req.open('POST', '/postmessage', true);
+  req.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+  req.setRequestHeader('Content-Length', body.length);
+  req.setRequestHeader('Connection', 'close');
+  req.send(body);
+}
+
 window.setTimeout('fetchMessages()', 500);
 window.setTimeout("document.getElementById('messageinput').focus()", 600);
 </script>
 </head>
 <body>
 <form action="/postmessage" method="POST">
-<p><input type="text" name="message" id="messageinput" /></p>
+<p><input type="text" name="message" id="messageinput" class="textinput" /></p>
 <p><button type="submit" id="sendbutton">Send</button></p>
 </form>
-<p id="smilies"><a class="jsclick" onclick="fetchSmilies()">Smile!</a></p>
+<p id="smilies"><button type="button" onclick="fetchSmilies()">Smile!</button> %%QUICKMESSAGES%%</p>
 <div id="messages">
 Fetching...
 </div>

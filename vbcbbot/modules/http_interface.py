@@ -150,8 +150,27 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             if self.path == "/":
+                # assemble the quick-messages
+                q_msg_string = '<span class="quickmessagelist">'
+
+                for quick_message in self.http_interface.quick_messages:
+                    q_msg_string += '<button type="button" onclick="sendQuick(\'{jmsg}\')">{msg}</button>'.format(
+                        msg=html_escape(quick_message),
+                        jmsg=html_escape(js_escape_string(
+                            quick_message, escape_quotes=False, escape_apostrophes=True
+                        ), escape_quotes=True)
+                    )
+
+                q_msg_string += '</span>'
+
                 # output the chatbox form
-                page = self.http_interface.page_template.replace("%%NICKNAME%%", self.http_interface.connector.username)
+                page = self.http_interface.page_template
+                for (old, new) in (
+                        ("%%NICKNAME%%", self.http_interface.connector.username),
+                        ("%%QUICKMESSAGES%%", q_msg_string)
+                ):
+                    page = page.replace(old, new)
+
                 self.send_ok_html_response(page.encode("utf-8"))
             elif self.path == "/messages":
                 # output the messages as a chunk
@@ -186,7 +205,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
             elif self.path == "/smilies":
                 smiley_string = '<span class="smileylist">'
-                smiley_string += '<a class="jsclick" onclick="hideSmilies()">Hide!</a>'
+                smiley_string += '<button type="button" onclick="hideSmilies()">Hide!</button>'
 
                 for (smiley_code, smiley_image_url) in sorted(
                     self.http_interface.connector.smiley_codes_to_urls.items()
@@ -353,6 +372,15 @@ class HttpInterface(Module):
         if "allowed files" in config_section:
             for f in config_section["allowed files"].split():
                 self.allowed_files.add(f.strip())
+
+        self.quick_messages = []
+        if "quick messages" in config_section:
+            for msg_line in config_section["quick messages"].split("\n"):
+                msg = msg_line.strip()
+                if len(msg) == 0:
+                    continue
+                self.quick_messages.append(msg)
+        self.quick_messages.sort()
 
         with open(config_section["page template"], "r") as f:
             self.page_template = f.read()
