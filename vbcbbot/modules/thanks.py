@@ -117,7 +117,13 @@ class Thanks(Module):
                 grateful_counts = []
                 for row in cursor:
                     grateful_counts.append("{0}: {1}\u00D7".format(row[0], row[1]))
-                stat_string = " (Most grateful {0}: {1})".format(self.most_grateful_count, ", ".join(grateful_counts))
+
+                # mention that the list is truncated if there might be more than self.most_grateful_count
+                count_string = ""
+                if len(grateful_counts) == self.most_grateful_count:
+                    count_string = " {0}".format(self.most_grateful_count)
+
+                stat_string = " (Most grateful{0}: {1})".format(count_string, ", ".join(grateful_counts))
 
             self.connector.send_message(
                 "{0}: {1} has {2} until now.{3}".format(
