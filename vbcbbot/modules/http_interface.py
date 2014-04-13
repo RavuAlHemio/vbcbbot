@@ -154,7 +154,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 q_msg_string = '<span class="quickmessagelist">'
 
                 for quick_message in self.http_interface.quick_messages:
-                    q_msg_string += '<button type="button" onclick="sendQuick(\'{jmsg}\')">{msg}</button>'.format(
+                    q_msg_string += ' <button type="button" onclick="sendQuick(\'{jmsg}\')">{msg}</button>'.format(
                         msg=html_escape(quick_message),
                         jmsg=html_escape(js_escape_string(
                             quick_message, escape_quotes=False, escape_apostrophes=True
