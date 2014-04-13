@@ -92,14 +92,37 @@ class Thanks(Module):
                 "SELECT COALESCE(SUM(thank_count), 0) FROM thanks WHERE thankee_folded=?",
                 (lower_nickname,)
             )
+
+            count_phrase = None
+            show_stats = True
             for row in cursor:
-                self.connector.send_message(
-                    "{0}: {1} has been thanked {2} until now.".format(
-                        message.user_name, user_info[1],
-                        "once" if row[0] == 1 else "{0} times".format(row[0])
-                    )
-                )
+                if row[0] == 0:
+                    count_phrase = "not been thanked"
+                    show_stats = False
+                elif row[0] == 1:
+                    count_phrase = "been thanked once"
+                elif row[0] == 2:
+                    count_phrase = "been thanked {0} times".format(row[0])
+
+            if count_phrase is None:
                 return
+
+            # fetch stats
+            stat_string = ""
+            if show_stats:
+                cursor.execute(
+                    "SELECT thanker, thank_count FROM thanks WHERE thankee_folded=? ORDER BY thank_count DESC LIMIT 5"
+                )
+                grateful_counts = []
+                for row in cursor:
+                    grateful_counts.append("{0}: {1}\u00D7".format(row[0], row[1]))
+                stat_string = " (Most grateful: {0})".format(", ".join(grateful_counts))
+
+            self.connector.send_message(
+                "{0}: {1} has {2} until now.{3}".format(
+                    message.user_name, user_info[1], count_phrase, stat_string
+                )
+            )
 
     def __init__(self, connector, config_section):
         """
