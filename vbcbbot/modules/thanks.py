@@ -101,7 +101,7 @@ class Thanks(Module):
                     show_stats = False
                 elif row[0] == 1:
                     count_phrase = "been thanked once"
-                elif row[0] == 2:
+                else:
                     count_phrase = "been thanked {0} times".format(row[0])
 
             if count_phrase is None:
