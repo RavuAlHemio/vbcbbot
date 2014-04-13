@@ -111,7 +111,8 @@ class Thanks(Module):
             stat_string = ""
             if show_stats:
                 cursor.execute(
-                    "SELECT thanker, thank_count FROM thanks WHERE thankee_folded=? ORDER BY thank_count DESC LIMIT 5"
+                    "SELECT thanker, thank_count FROM thanks WHERE thankee_folded=? ORDER BY thank_count DESC LIMIT 5",
+                    (lower_nickname,)
                 )
                 grateful_counts = []
                 for row in cursor:
