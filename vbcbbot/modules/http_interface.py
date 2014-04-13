@@ -92,6 +92,10 @@ def dom_to_html(body_dom, base_url):
                     color=node.attribute_value,
                     inside=dom_to_html(node.children, base_url)
                 )
+            elif node.name == "spoiler":
+                ret += '<span class="spoiler">{inside}</span>'.format(
+                    inside=dom_to_html(node.children, base_url)
+                )
             elif node.name == "noparse":
                 ret += html_escape("".join([str(child) for child in node.children]))
             else:
