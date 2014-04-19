@@ -213,7 +213,7 @@ class HtmlDecompiler:
                             ret.append(Element("url", self.decompile_lxml(child),
                                                child.attrib["href"]))
 
-                elif child.tag in "biu":
+                elif child.tag in ("b", "i", "u"):
                     # bold/italic/underline!
                     ret.append(Element(child.tag, self.decompile_lxml(child)))
                 elif child.tag == "sub":
