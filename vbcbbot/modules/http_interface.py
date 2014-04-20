@@ -101,7 +101,7 @@ def dom_to_html(body_dom, base_url):
             else:
                 ret += html_escape(node)
         elif isinstance(node, SmileyText):
-            ret += '<img class="smiley" src="{src}" alt="{smiley}" />'.format(
+            ret += '<img class="smiley" src="{src}" alt="{smiley}" title="{smiley}" />'.format(
                 src=html_escape(robust_urljoin(base_url, node.smiley_url)), smiley=html_escape(node.text)
             )
         else:
