@@ -49,6 +49,10 @@ def run():
                 custom_smiley_to_url[smiley] = url
                 custom_url_to_smiley[url] = smiley
 
+        refresh_time = 5
+        if 'refresh time' in section:
+            refresh_time = int(section['refresh time'])
+
         html_decompiler = None
         if 'html decompiler' in config:
             hd_section = config['html decompiler']
@@ -63,6 +67,7 @@ def run():
         conn.banned_nicknames = bans
         conn.custom_smiley_codes_to_urls = custom_smiley_to_url
         conn.custom_smiley_urls_to_codes = custom_url_to_smiley
+        conn.time_between_reads = refresh_time
 
         # load the modules
         loaded_modules = set()
