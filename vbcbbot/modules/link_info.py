@@ -45,10 +45,10 @@ def obtain_link_info(url):
         if content_type in ("text/html", "application/xhtml+xml"):
             # HTML? parse it and get the title
             html = etree.HTML(response_bytes)
-            title_element = html.find("title")
+            title_element = html.find(".//title")
             if title_element is not None:
                 return "".join(title_element.itertext())
-            h1_element = html.find("h1")
+            h1_element = html.find(".//h1")
             if h1_element is not None:
                 return "".join(h1_element.itertext())
             return "(HTML without a title O_o)"
