@@ -4,6 +4,7 @@ from vbcbbot.modules import Module
 import logging
 from lxml import etree
 import time
+import urllib.error as ue
 import urllib.request as ur
 
 __author__ = 'ondra'
@@ -26,9 +27,10 @@ def obtain_link_info(url):
         if not url.startswith("http://") and not url.startswith("https://"):
             return "(I only access HTTP and HTTPS URLs)"
 
-        response_object = ur.urlopen(url, timeout=5)
-        if response_object.code != 200:
-            return "(HTTP {0})".format(response_object.code)
+        try:
+            response_object = ur.urlopen(url, timeout=5)
+        except ue.HTTPError as err:
+            return "(HTTP {0})".format(err.code)
         response_bytes = response_object.read()
         response_headers = response_object.getheaders()
 
