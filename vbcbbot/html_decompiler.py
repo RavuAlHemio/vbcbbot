@@ -149,8 +149,17 @@ class HtmlDecompiler:
         self.smiley_url_to_symbol = smiley_url_to_symbol
         self.tex_prefix = tex_prefix
 
+    @property
+    def smiley_url_to_symbol(self):
+        return self.internal_smiley_url_to_symbol
+
+    @smiley_url_to_symbol.setter
+    def smiley_url_to_symbol(self, new_value):
+        self.internal_smiley_url_to_symbol = new_value
+
+        # update noparse string regex
         regex_for_noparse_string = "\\[+"
-        for smiley_string in sorted(smiley_url_to_symbol.values(), key=len, reverse=True):
+        for smiley_string in sorted(self.internal_smiley_url_to_symbol.values(), key=len, reverse=True):
             regex_for_noparse_string += "|" + re.escape(smiley_string)
         self.regex_for_noparse = re.compile(regex_for_noparse_string)
 
