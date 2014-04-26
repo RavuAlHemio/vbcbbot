@@ -1,10 +1,9 @@
-from vbcbbot import chatbox_connector
 from vbcbbot.modules import Module
 
+from http.cookiejar import CookieJar
 import logging
 from lxml import etree
 from lxml.cssselect import CSSSelector
-import time
 import urllib.error as ue
 import urllib.parse as up
 import urllib.request as ur
@@ -13,6 +12,10 @@ __author__ = 'ondra'
 
 logger = logging.getLogger("vbcbbot.modules.link_info")
 
+google_homepage_url = "http://www.google.com/"
+google_image_search_url = "http://www.google.com/imghp?hl=en&tab=wi"
+google_search_by_image_url = "https://www.google.com/searchbyimage?hl=en&image_url={0}"
+fake_user_agent = "Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0"
 
 def find_links(node_list):
     ret = []
@@ -26,12 +29,26 @@ def find_links(node_list):
 
 def obtain_image_info(url, text):
     try:
-        search_url = "https://www.google.com/searchbyimage?image_url={0}".format(up.quote_plus(url))
-        response_object = ur.urlopen(search_url, timeout=5)
+        # initialize cookies
+        jar = CookieJar()
+        opener = ur.build_opener(ur.HTTPCookieProcessor(jar))
+
+        # alibi-visit the image search page to get the cookies
+        opener.open(ur.Request(
+            google_image_search_url,
+            headers={"Referer": google_homepage_url, "User-Agent": fake_user_agent}
+        ),timeout=5).read()
+
+        # fetch the actual info
+        search_url = google_search_by_image_url.format(up.quote_plus(url))
+        response_object = opener.open(ur.Request(
+            search_url,
+            headers={"Referer": google_image_search_url, "User-Agent": fake_user_agent}
+        ), timeout=5)
         response_bytes = response_object.read()
 
         dom = etree.HTML(response_bytes)
-        sel = CSSSelector(".qb-bqmc .qb-b")
+        sel = CSSSelector(".qb-bmqc .qb-b")
         found_hints = sel(dom)
         if len(found_hints) == 0:
             return text
