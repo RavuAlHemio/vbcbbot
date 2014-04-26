@@ -37,14 +37,14 @@ def obtain_image_info(url, text):
         opener.open(ur.Request(
             google_image_search_url,
             headers={"Referer": google_homepage_url, "User-Agent": fake_user_agent}
-        ),timeout=5).read()
+        ),timeout=10).read()
 
         # fetch the actual info
         search_url = google_search_by_image_url.format(up.quote_plus(url))
         response_object = opener.open(ur.Request(
             search_url,
             headers={"Referer": google_image_search_url, "User-Agent": fake_user_agent}
-        ), timeout=5)
+        ), timeout=10)
         response_bytes = response_object.read()
 
         dom = etree.HTML(response_bytes)
