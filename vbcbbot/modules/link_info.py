@@ -3,8 +3,10 @@ from vbcbbot.modules import Module
 
 import logging
 from lxml import etree
+from lxml.cssselect import CSSSelector
 import time
 import urllib.error as ue
+import urllib.parse as up
 import urllib.request as ur
 
 __author__ = 'ondra'
@@ -20,6 +22,23 @@ def find_links(node_list):
         if node.has_children():
             ret += find_links(node.children)
     return ret
+
+
+def obtain_image_info(url, text):
+    try:
+        search_url = "https://www.google.com/searchbyimage?image_url={0}".format(up.quote_plus(url))
+        response_object = ur.urlopen(search_url, timeout=5)
+        response_bytes = response_object.read()
+
+        dom = etree.HTML(response_bytes)
+        sel = CSSSelector(".qb-bqmc .qb-b")
+        found_hints = sel(dom)
+        if len(found_hints) == 0:
+            return text
+        return "{0} ({1})".format(text, "".join(found_hints[0].itertext()))
+    except:
+        logger.exception("image info")
+        return text
 
 
 def obtain_link_info(url):
@@ -55,11 +74,11 @@ def obtain_link_info(url):
                 return "".join(h1_element.itertext())
             return "(HTML without a title O_o)"
         elif content_type == "image/png":
-            return "PNG image"
+            return obtain_image_info(url, "PNG image")
         elif content_type == "image/jpeg":
-            return "JPEG image"
+            return obtain_image_info(url, "JPEG image")
         elif content_type == "image/gif":
-            return "GIF image"
+            return obtain_image_info(url, "GIF image")
         elif content_type == "application/json":
             return "JSON"
         elif content_type in ("text/xml", "application/xml"):
