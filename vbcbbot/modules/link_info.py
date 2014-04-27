@@ -1,9 +1,12 @@
 from vbcbbot.modules import Module
 
 from http.cookiejar import CookieJar
+import ipaddress
 import logging
 from lxml import etree
 from lxml.cssselect import CSSSelector
+import re
+import socket
 import urllib.error as ue
 import urllib.parse as up
 import urllib.request as ur
@@ -16,6 +19,9 @@ google_homepage_url = "http://www.google.com/"
 google_image_search_url = "http://www.google.com/imghp?hl=en&tab=wi"
 google_search_by_image_url = "https://www.google.com/searchbyimage?hl=en&image_url={0}"
 fake_user_agent = "Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0"
+
+netloc_split_port_re = re.compile("^(.*?)(:[0-9]+)?$")
+
 
 def find_links(node_list):
     ret = []
@@ -58,10 +64,41 @@ def obtain_image_info(url, text):
         return text
 
 
+def check_url_blacklist(url):
+    url_parts = up.urlparse(url)
+    netloc_with_port = url_parts.netloc
+
+    if netloc_with_port == '':
+        return "(invalid URL)"
+
+    # remove the port
+    netloc = netloc_split_port_re.match(netloc_with_port).group(1)
+
+    # resolve
+    resolutions = socket.getaddrinfo(netloc, None, proto=socket.SOL_TCP)
+
+    if len(resolutions) == 0:
+        return "(cannot resolve)"
+
+    for (family, type, proto, canon_name, sock_addr) in resolutions:
+        ip_addr = ipaddress.ip_address(sock_addr[0])
+        if ip_addr.is_link_local() or ip_addr.is_private():
+            return "(I refuse to access local IP addresses)"
+
+    # it's fine
+    return None
+
+
 def obtain_link_info(url):
     try:
-        if not url.startswith("http://") and not url.startswith("https://"):
+        lower_url = url.lower()
+
+        if not lower_url.startswith("http://") and not lower_url.startswith("https://"):
             return "(I only access HTTP and HTTPS URLs)"
+
+        message = check_url_blacklist(url)
+        if message is not None:
+            return message
 
         try:
             response_object = ur.urlopen(url, timeout=5)
