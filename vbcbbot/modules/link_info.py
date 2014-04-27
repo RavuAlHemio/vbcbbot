@@ -82,7 +82,7 @@ def check_url_blacklist(url):
 
     for (family, type, proto, canon_name, sock_addr) in resolutions:
         ip_addr = ipaddress.ip_address(sock_addr[0])
-        if ip_addr.is_link_local() or ip_addr.is_private():
+        if ip_addr.is_link_local or ip_addr.is_private:
             return "(I refuse to access local IP addresses)"
 
     # it's fine
