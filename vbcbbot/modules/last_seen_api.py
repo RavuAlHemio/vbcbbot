@@ -31,6 +31,7 @@ class LastSeenApi(Module):
             return
 
         nicknames = [nick.strip().replace("[/noparse]", "") for nick in match.group(2).split(";")]
+        nicknames = [nick for nick in nicknames if len(nick) > 0]
         nicknames_times = {}
 
         if len(nicknames) == 0:
