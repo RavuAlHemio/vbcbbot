@@ -74,7 +74,11 @@ class Messenger(Module):
         try:
             user_info = self.connector.get_user_id_and_nickname_for_uncased_name(target_name)
         except chatbox_connector.TransferError:
-            pass
+            self.connector.send_message(
+                "Sorry, I couldn\u2019t verify if \u201c{0}\u201d exists because the forum isn\u2019t being "
+                "cooperative. Please try again later!".format(target_name)
+            )
+            return
 
         if user_info is None:
             colon_info = ""
