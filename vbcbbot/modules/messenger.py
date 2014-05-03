@@ -64,14 +64,18 @@ class Messenger(Module):
         lower_target_name = target_name.lower()
         send_body = send_body.strip()
 
-        if lower_target_name == self.connector.username.lower():
+        if len(lower_target_name) == 0:
+            self.connector.send_message("You must specify a name to deliver to!")
+            return
+        elif len(send_body) == 0:
+            self.connector.send_message("You must specify a message to deliver!")
+        elif lower_target_name == self.connector.username.lower():
             self.connector.send_message("Sorry, I don\u2019t deliver to myself!")
             return
         elif lower_target_name in self.connector.banned_nicknames:
             self.connector.send_message("Sorry, but I\u2019ve been told to ignore \u201c{0}\u201d.".format(target_name))
             return
 
-        user_info = None
         try:
             user_info = self.connector.get_user_id_and_nickname_for_uncased_name(target_name)
         except chatbox_connector.TransferError:
