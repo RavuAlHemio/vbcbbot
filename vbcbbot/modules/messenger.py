@@ -125,21 +125,24 @@ class Messenger(Module):
         # fetch messages
         cursor = self.database.cursor()
         cursor.execute(
-            "SELECT timestamp, sender_original, body FROM messages_on_retainer WHERE recipient_folded=? "
+            "SELECT timestamp, sender_original, body, rowid FROM messages_on_retainer WHERE recipient_folded=? "
             "ORDER BY timestamp ASC LIMIT ?",
             (lower_sender_name, fetch_count)
         )
         messages = []
+        delete_row_ids = []
         for row in cursor:
             messages.append((row[0], row[1], row[2]))
+            delete_row_ids.append(row[3])
         cursor.close()
 
         # delete them
         cursor = self.database.cursor()
-        cursor.execute(
-            "DELETE FROM messages_on_retainer WHERE recipient_folded=? ORDER BY timestamp ASC LIMIT ?",
-            (lower_sender_name, fetch_count)
-        )
+        for row_id in delete_row_ids:
+            cursor.execute(
+                "DELETE FROM messages_on_retainer WHERE rowid=?",
+                (row_id,)
+            )
         self.database.commit()
         cursor.close()
 
