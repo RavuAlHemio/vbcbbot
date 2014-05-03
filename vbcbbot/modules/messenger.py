@@ -125,6 +125,11 @@ class Messenger(Module):
             return
 
         fetch_count = int(match.group(2))
+        if fetch_count > 1000:
+            self.connector.send_message(
+                "{0}: I am absolutely not delivering that many messages at once.".format(message.user_name)
+            )
+            return
 
         # fetch messages
         cursor = self.database.cursor()
