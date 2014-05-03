@@ -222,7 +222,7 @@ class Messenger(Module):
 
         retainer_text = ""
         if on_retainer > 0:
-            retainer_text = " (and {0} pending delivery)".format(on_retainer)
+            retainer_text = " (and {0} pending !delivermsg)".format(on_retainer)
 
         if len(messages) == 0:
             # meh
