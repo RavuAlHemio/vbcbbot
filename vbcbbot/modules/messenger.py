@@ -10,6 +10,7 @@ __author__ = 'ondra'
 
 logger = logging.getLogger("vbcbbot.modules.messenger")
 msg_trigger = re.compile("^!(msg|mail) (.+)$")
+deliver_trigger = re.compile("^!(delivermsg) ([0-9]+)$")
 
 
 def split_recipient_and_message(text):
@@ -114,6 +115,69 @@ class Messenger(Module):
                 "[i][noparse]{0}[/noparse][/i] next time I see \u2019em!"
             self.connector.send_message(sent_template.format(user_info[1]))
 
+    def potential_deliver_request(self, message, body, lower_sender_name):
+        match = deliver_trigger.match(body)
+        if match is None:
+            return
+
+        fetch_count = int(match.group(2))
+
+        # fetch messages
+        cursor = self.database.cursor()
+        cursor.execute(
+            "SELECT timestamp, sender_original, body FROM messages_on_retainer WHERE recipient_folded=? "
+            "ORDER BY timestamp ASC LIMIT ?",
+            (lower_sender_name, fetch_count)
+        )
+        messages = []
+        for row in cursor:
+            messages.append((row[0], row[1], row[2]))
+        cursor.close()
+
+        # delete them
+        cursor = self.database.cursor()
+        cursor.execute(
+            "DELETE FROM messages_on_retainer WHERE recipient_folded=? ORDER BY timestamp ASC LIMIT ?",
+            (lower_sender_name, fetch_count)
+        )
+        self.database.commit()
+        cursor.close()
+
+        # check how many are left
+        cursor = self.database.cursor()
+        cursor.execute(
+            "SELECT COUNT(*) FROM messages_on_retainer WHERE recipient_folded=?",
+            (lower_sender_name,)
+        )
+        remaining = 0
+        for row in cursor:
+            remaining = row[0]
+        cursor.close()
+
+        # output them, if any
+        if len(messages) > 0:
+            self.connector.send_message(
+                "Replaying {0} messages for {1}!".format(len(messages), message.user_name)
+            )
+            for (the_timestamp, the_sender, the_body) in messages:
+                logger.debug("delivering {0}'s retained message {1} to {2} as part of a chunk".format(
+                    repr(the_sender), repr(the_body), repr(message.user_name)
+                ))
+                self.connector.send_message("[{0}] <[noparse]{1}[/noparse]> {2}".format(
+                    time.strftime("%Y-%m-%d %H:%M", time.localtime(the_timestamp)),
+                    the_sender,
+                    the_body
+                ))
+
+        # output remaining messages count
+        if remaining == 0:
+            if len(messages) > 0:
+                self.connector.send_message("{0} has no more messages left to deliver!".format(message.user_name))
+            else:
+                self.connector.send_message("{0} has no messages to deliver!".format(message.user_name))
+        else:
+            self.connector.send_message("{0} has {1} messages left to deliver!".format(message.user_name, remaining))
+
     def message_received(self, message):
         """
         Called by the communicator when a new message has been received.
@@ -126,6 +190,9 @@ class Messenger(Module):
 
         # process potential message sends
         self.potential_message_send(message, body, lower_sender_name)
+
+        # process potential deliver request
+        self.potential_deliver_request(message, body, lower_sender_name)
 
         if self.connector.should_stfu():
             # don't bother just yet
@@ -143,6 +210,20 @@ class Messenger(Module):
             messages.append((bin_row[0], bin_row[1], bin_row[2]))
         cursor.close()
 
+        # check how many messages the user has on retainer
+        cursor = self.database.cursor()
+        cursor.execute(
+            "SELECT COUNT(*) FROM messages_on_retainer WHERE recipient_folded=?",
+            (lower_sender_name,)
+        )
+        on_retainer = 0
+        for row in cursor:
+            on_retainer = row[0]
+
+        retainer_text = ""
+        if on_retainer > 0:
+            retainer_text = " (and {0} pending delivery)".format(on_retainer)
+
         if len(messages) == 0:
             # meh
             return
@@ -153,17 +234,41 @@ class Messenger(Module):
                 repr(the_sender), repr(the_body), repr(message.user_name)
             ))
             self.connector.send_message(
-                "Message for [noparse]{0}[/noparse]! [{1}] <[noparse]{2}[/noparse]> {3}".format(
+                "Message for [noparse]{0}[/noparse]{4}! [{1}] <[noparse]{2}[/noparse]> {3}".format(
                     message.user_name,
                     time.strftime("%Y-%m-%d %H:%M", time.localtime(the_timestamp)),
                     the_sender,
-                    the_body
+                    the_body,
+                    retainer_text
                 )
             )
+        elif len(messages) >= self.too_many_messages:
+            logger.debug("{0} got {1} messages; putting on retainer".format(message.user_name, len(messages)))
+            self.connector.send_message(
+                "{0} new messages for [noparse]{1}[/noparse]{2}! Use \u201c!delivermsg [i]maxnumber[/i]\u201d to get "
+                "them!".format(
+                    len(messages),
+                    message.user_name,
+                    retainer_text
+                )
+            )
+
+            # put on retainer
+            cursor = self.database.cursor()
+            cursor.execute(
+                "INSERT INTO messages_on_retainer SELECT * FROM messages WHERE recipient_folded=? "
+                "ORDER BY timestamp ASC",
+                (lower_sender_name,)
+            )
+            self.database.commit()
+            cursor.close()
+            # non-retained messages will be deleted below
         else:
             # multiple messages
-            self.connector.send_message("{0} messages for [noparse]{1}[/noparse]!".format(
-                len(messages), message.user_name
+            self.connector.send_message("{0} new messages for [noparse]{1}[/noparse]{2}!".format(
+                len(messages),
+                message.user_name,
+                retainer_text
             ))
             for (the_timestamp, the_sender, the_body) in messages:
                 logger.debug("delivering {0}'s message {1} to {2} as part of a chunk".format(
@@ -199,6 +304,10 @@ class Messenger(Module):
         else:
             self.database = sqlite3.connect(":memory:", check_same_thread=False)
 
+        self.too_many_messages = 10
+        if "too many messages" in config_section:
+            self.too_many_messages = int(config_section["too many messages"])
+
         cursor = self.database.cursor()
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS messages (
@@ -209,7 +318,19 @@ class Messenger(Module):
         )
         """)
         cursor.execute("""
+        CREATE TABLE IF NOT EXISTS messages_on_retainer (
+            timestamp INT NOT NULL,
+            sender_original TEXT NOT NULL,
+            recipient_folded TEXT NOT NULL,
+            body TEXT NOT NULL
+        )
+        """)
+        cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_messages_recipient_timestamp
         ON messages (recipient_folded, timestamp ASC)
+        """)
+        cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_messages_on_retainer_recipient_timestamp
+        ON messages_on_retainer (recipient_folded, timestamp ASC)
         """)
         self.database.commit()
