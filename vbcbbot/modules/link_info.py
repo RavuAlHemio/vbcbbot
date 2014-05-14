@@ -1,5 +1,6 @@
 from vbcbbot.modules import Module
 
+from bs4 import UnicodeDammit
 from http.cookiejar import CookieJar
 import ipaddress
 import logging
@@ -119,7 +120,11 @@ def obtain_link_info(url):
 
         if content_type in ("text/html", "application/xhtml+xml"):
             # HTML? parse it and get the title
-            html = etree.HTML(response_bytes)
+            parse_me = response_bytes
+            ud_result = UnicodeDammit(response_bytes)
+            if ud_result is not None:
+                parse_me = ud_result.unicode_markup
+            html = etree.HTML(parse_me)
             title_element = html.find(".//title")
             if title_element is not None:
                 return "".join(title_element.itertext())
