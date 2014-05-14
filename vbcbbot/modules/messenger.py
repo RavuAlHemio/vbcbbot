@@ -69,6 +69,7 @@ class Messenger(Module):
             return
         elif len(send_body) == 0:
             self.connector.send_message("You must specify a message to deliver!")
+            return
         elif lower_target_name == self.connector.username.lower():
             self.connector.send_message("Sorry, I don\u2019t deliver to myself!")
             return
