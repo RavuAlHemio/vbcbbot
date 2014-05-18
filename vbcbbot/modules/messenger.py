@@ -41,6 +41,10 @@ def split_recipient_and_message(text):
     raise ValueError("You need to put a colon between the nickname and the message!")
 
 
+def remove_zwnbsp_and_strip(text):
+    return text.replace("\uFEFF", "").strip()
+
+
 class Messenger(Module):
     """Delivers messages to users when they return."""
 
@@ -60,9 +64,9 @@ class Messenger(Module):
             self.connector.send_message(str(e))
             return
 
-        target_name = target_name.strip()
+        target_name = remove_zwnbsp_and_strip(target_name)
         lower_target_name = target_name.lower()
-        send_body = send_body.strip()
+        send_body = remove_zwnbsp_and_strip(send_body)
 
         if len(lower_target_name) == 0:
             self.connector.send_message("You must specify a name to deliver to!")
@@ -199,7 +203,7 @@ class Messenger(Module):
         lower_sender_name = message.user_name.lower()
 
         # parse and strip
-        body = message.decompiled_body().strip()
+        body = remove_zwnbsp_and_strip(message.decompiled_body())
 
         # process potential message sends
         self.potential_message_send(message, body, lower_sender_name)
