@@ -5,6 +5,7 @@ import logging
 import re
 import sqlite3
 import time
+import unicodedata
 
 __author__ = 'ondra'
 
@@ -41,8 +42,12 @@ def split_recipient_and_message(text):
     raise ValueError("You need to put a colon between the nickname and the message!")
 
 
-def remove_zwnbsp_and_strip(text):
-    return text.replace("\uFEFF", "").strip()
+def remove_control_characters_and_strip(text):
+    ret = ""
+    for c in text:
+        if unicodedata.category(c)[0] != 'C':
+            ret += c
+    return ret.strip()
 
 
 class Messenger(Module):
@@ -64,9 +69,9 @@ class Messenger(Module):
             self.connector.send_message(str(e))
             return
 
-        target_name = remove_zwnbsp_and_strip(target_name)
+        target_name = remove_control_characters_and_strip(target_name)
         lower_target_name = target_name.lower()
-        send_body = remove_zwnbsp_and_strip(send_body)
+        send_body = remove_control_characters_and_strip(send_body)
 
         if len(lower_target_name) == 0:
             self.connector.send_message("You must specify a name to deliver to!")
@@ -203,7 +208,7 @@ class Messenger(Module):
         lower_sender_name = message.user_name.lower()
 
         # parse and strip
-        body = remove_zwnbsp_and_strip(message.decompiled_body())
+        body = remove_control_characters_and_strip(message.decompiled_body())
 
         # process potential message sends
         self.potential_message_send(message, body, lower_sender_name)
