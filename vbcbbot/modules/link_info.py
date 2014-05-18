@@ -54,7 +54,11 @@ def obtain_image_info(url, text):
         ), timeout=10)
         response_bytes = response_object.read()
 
-        dom = etree.HTML(response_bytes)
+        parse_me = response_bytes
+        ud_result = UnicodeDammit(response_bytes)
+        if ud_result is not None:
+            parse_me = ud_result.unicode_markup
+        dom = etree.HTML(parse_me)
         sel = CSSSelector(".qb-bmqc .qb-b")
         found_hints = sel(dom)
         if len(found_hints) == 0:
