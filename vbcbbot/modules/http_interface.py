@@ -98,6 +98,10 @@ def dom_to_html(body_dom, base_url):
                 )
             elif node.name == "noparse":
                 ret += html_escape("".join([str(child) for child in node.children]))
+            elif node.name == "tex":
+                ret += '<script type="math/tex">{math}</script>'.format(
+                    math="".join([str(child) for child in node.children])
+                )
             else:
                 ret += html_escape(node)
         elif isinstance(node, SmileyText):
