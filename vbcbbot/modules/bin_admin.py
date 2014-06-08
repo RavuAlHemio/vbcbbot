@@ -40,6 +40,10 @@ class BinAdmin(Module):
         if message.user_name in self.banned:
             return
 
+        if message.user_name == self.connector.username:
+            # the bot itself may not throw things into the bin
+            return
+
         body = message.decompiled_body()
 
         if body.startswith("!"):
