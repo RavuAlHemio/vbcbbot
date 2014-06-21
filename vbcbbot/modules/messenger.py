@@ -129,6 +129,17 @@ class Messenger(Module):
                 "[i][noparse]{0}[/noparse][/i] next time I see \u2019em!"
             self.connector.send_message(sent_template.format(user_info[1]))
 
+    def format_timestamp(self, message_id, the_timestamp):
+        timestamp_format = "[{0}]"
+        timestamp_link_url = ""
+        if self.timestamp_link is not None:
+            timestamp_format = "[url={1}][{0}][/url]"
+            timestamp_link_url = self.timestamp_link.format(message_id)
+        return timestamp_format.format(
+            time.strftime("%Y-%m-%d %H:%M", time.localtime(the_timestamp)),
+            timestamp_link_url
+        )
+
     def potential_deliver_request(self, message, body, lower_sender_name):
         match = deliver_trigger.match(body)
         if match is None:
@@ -144,14 +155,14 @@ class Messenger(Module):
         # fetch messages
         cursor = self.database.cursor()
         cursor.execute(
-            "SELECT timestamp, sender_original, body, rowid FROM messages_on_retainer WHERE recipient_folded=? "
+            "SELECT timestamp, sender_original, body, message_id FROM messages_on_retainer WHERE recipient_folded=? "
             "ORDER BY timestamp ASC LIMIT ?",
             (lower_sender_name, fetch_count)
         )
         messages = []
         delete_row_ids = []
         for row in cursor:
-            messages.append((row[0], row[1], row[2]))
+            messages.append((row[0], row[1], row[2], row[3]))
             delete_row_ids.append(row[3])
         cursor.close()
 
@@ -159,7 +170,7 @@ class Messenger(Module):
         cursor = self.database.cursor()
         for row_id in delete_row_ids:
             cursor.execute(
-                "DELETE FROM messages_on_retainer WHERE rowid=?",
+                "DELETE FROM messages_on_retainer WHERE message_id=?",
                 (row_id,)
             )
         self.database.commit()
@@ -181,12 +192,12 @@ class Messenger(Module):
             self.connector.send_message(
                 "Replaying {0} messages for {1}!".format(len(messages), message.user_name)
             )
-            for (the_timestamp, the_sender, the_body) in messages:
+            for (the_timestamp, the_sender, the_body, the_message_id) in messages:
                 logger.debug("delivering {0}'s retained message {1} to {2} as part of a chunk".format(
                     repr(the_sender), repr(the_body), repr(message.user_name)
                 ))
-                self.connector.send_message("[{0}] <[noparse]{1}[/noparse]> {2}".format(
-                    time.strftime("%Y-%m-%d %H:%M", time.localtime(the_timestamp)),
+                self.connector.send_message("{0} <[noparse]{1}[/noparse]> {2}".format(
+                    self.format_timestamp(the_message_id, the_timestamp),
                     the_sender,
                     the_body
                 ))
@@ -223,13 +234,13 @@ class Messenger(Module):
         # check if the sender should get any messages
         cursor = self.database.cursor()
         cursor.execute(
-            "SELECT timestamp, sender_original, body FROM messages "
+            "SELECT timestamp, sender_original, body, message_id FROM messages "
             "WHERE recipient_folded=? ORDER BY timestamp ASC",
             (lower_sender_name,)
         )
         messages = []
         for bin_row in cursor:
-            messages.append((bin_row[0], bin_row[1], bin_row[2]))
+            messages.append((bin_row[0], bin_row[1], bin_row[2], bin_row[3]))
         cursor.close()
 
         # check how many messages the user has on retainer
@@ -251,14 +262,14 @@ class Messenger(Module):
             return
         elif len(messages) == 1:
             # one message
-            (the_timestamp, the_sender, the_body) = messages[0]
-            logger.debug("delivering {0}'s message {1} to {2}".format(
-                repr(the_sender), repr(the_body), repr(message.user_name)
+            (the_timestamp, the_sender, the_body, the_message_id) = messages[0]
+            logger.debug("delivering {0}'s message #{3} {1} to {2}".format(
+                repr(the_sender), repr(the_body), repr(message.user_name), repr(the_message_id)
             ))
             self.connector.send_message(
-                "Message for [noparse]{0}[/noparse]{4}! [{1}] <[noparse]{2}[/noparse]> {3}".format(
+                "Message for [noparse]{0}[/noparse]{4}! {1} <[noparse]{2}[/noparse]> {3}".format(
                     message.user_name,
-                    time.strftime("%Y-%m-%d %H:%M", time.localtime(the_timestamp)),
+                    self.format_timestamp(the_message_id, the_timestamp),
                     the_sender,
                     the_body,
                     retainer_text
@@ -292,11 +303,12 @@ class Messenger(Module):
                 message.user_name,
                 retainer_text
             ))
-            for (the_timestamp, the_sender, the_body) in messages:
-                logger.debug("delivering {0}'s message {1} to {2} as part of a chunk".format(
-                    repr(the_sender), repr(the_body), repr(message.user_name)
+            for (the_timestamp, the_sender, the_body, the_message_id) in messages:
+                logger.debug("delivering {0}'s message #{3} {1} to {2} as part of a chunk".format(
+                    repr(the_sender), repr(the_body), repr(message.user_name), repr(message_id)
                 ))
-                self.connector.send_message("[{0}] <[noparse]{1}[/noparse]> {2}".format(
+                self.connector.send_message("{0} <[noparse]{1}[/noparse]> {2}".format(
+                    self.format_timestamp(the_message_id, the_timestamp),
                     time.strftime("%Y-%m-%d %H:%M", time.localtime(the_timestamp)),
                     the_sender,
                     the_body
@@ -329,6 +341,10 @@ class Messenger(Module):
         self.too_many_messages = 10
         if "too many messages" in config_section:
             self.too_many_messages = int(config_section["too many messages"])
+
+        self.timestamp_link = None
+        if "timestamp link" in config_section:
+            self.timestamp_link = config_section["timestamp link"]
 
         cursor = self.database.cursor()
         cursor.execute("""
