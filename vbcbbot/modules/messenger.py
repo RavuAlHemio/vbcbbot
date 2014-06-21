@@ -66,7 +66,7 @@ class Messenger(Module):
         try:
             (target_name, send_body) = split_recipient_and_message(recipient_and_message)
         except ValueError as e:
-            self.connector.send_message(str(e))
+            self.connector.send_message("{0}: {1}".format(message.user_name, str(e)))
             return
 
         target_name = remove_control_characters_and_strip(target_name)
