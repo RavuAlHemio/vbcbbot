@@ -309,7 +309,6 @@ class Messenger(Module):
                 ))
                 self.connector.send_message("{0} <[noparse]{1}[/noparse]> {2}".format(
                     self.format_timestamp(the_message_id, the_timestamp),
-                    time.strftime("%Y-%m-%d %H:%M", time.localtime(the_timestamp)),
                     the_sender,
                     the_body
                 ))
