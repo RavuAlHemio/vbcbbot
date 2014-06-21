@@ -305,7 +305,7 @@ class Messenger(Module):
             ))
             for (the_timestamp, the_sender, the_body, the_message_id) in messages:
                 logger.debug("delivering {0}'s message #{3} {1} to {2} as part of a chunk".format(
-                    repr(the_sender), repr(the_body), repr(message.user_name), repr(message_id)
+                    repr(the_sender), repr(the_body), repr(message.user_name), repr(the_message_id)
                 ))
                 self.connector.send_message("{0} <[noparse]{1}[/noparse]> {2}".format(
                     self.format_timestamp(the_message_id, the_timestamp),
