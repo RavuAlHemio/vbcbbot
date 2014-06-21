@@ -113,9 +113,9 @@ class Messenger(Module):
         cursor = self.database.cursor()
         cursor.execute(
             "INSERT INTO messages "
-            "(timestamp, sender_original, recipient_folded, body) "
-            "VALUES (?, ?, ?, ?)",
-            (message.timestamp, message.user_name, lower_target_name, send_body)
+            "(message_id, timestamp, sender_original, recipient_folded, body) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (message.id, message.timestamp, message.user_name, lower_target_name, send_body)
         )
         self.database.commit()
 
@@ -333,6 +333,7 @@ class Messenger(Module):
         cursor = self.database.cursor()
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS messages (
+            message_id INT NOT NULL PRIMARY KEY,
             timestamp INT NOT NULL,
             sender_original TEXT NOT NULL,
             recipient_folded TEXT NOT NULL,
@@ -341,6 +342,7 @@ class Messenger(Module):
         """)
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS messages_on_retainer (
+            message_id INT NOT NULL PRIMARY KEY,
             timestamp INT NOT NULL,
             sender_original TEXT NOT NULL,
             recipient_folded TEXT NOT NULL,
