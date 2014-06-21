@@ -74,24 +74,24 @@ class Messenger(Module):
         send_body = remove_control_characters_and_strip(send_body)
 
         if len(lower_target_name) == 0:
-            self.connector.send_message("You must specify a name to deliver to!")
+            self.connector.send_message("{0}: You must specify a name to deliver to!".format(message.user_name))
             return
         elif len(send_body) == 0:
-            self.connector.send_message("You must specify a message to deliver!")
+            self.connector.send_message("{0}: You must specify a message to deliver!".format(message.user_name))
             return
         elif lower_target_name == self.connector.username.lower():
-            self.connector.send_message("Sorry, I don\u2019t deliver to myself!")
+            self.connector.send_message("{0}: Sorry, I don\u2019t deliver to myself!".format(message.user_name))
             return
         elif lower_target_name in self.connector.banned_nicknames:
-            self.connector.send_message("Sorry, but I\u2019ve been told to ignore \u201c{0}\u201d.".format(target_name))
+            self.connector.send_message("{1}: Sorry, but I\u2019ve been told to ignore \u201c{0}\u201d.".format(target_name, message.user_name))
             return
 
         try:
             user_info = self.connector.get_user_id_and_nickname_for_uncased_name(target_name)
         except chatbox_connector.TransferError:
             self.connector.send_message(
-                "Sorry, I couldn\u2019t verify if \u201c{0}\u201d exists because the forum isn\u2019t being "
-                "cooperative. Please try again later!".format(target_name)
+                "{1}: Sorry, I couldn\u2019t verify if \u201c{0}\u201d exists because the forum isn\u2019t being "
+                "cooperative. Please try again later!".format(target_name, message.user_name)
             )
             return
 
@@ -102,7 +102,7 @@ class Messenger(Module):
             elif len(target_name) > 32:
                 colon_info = " (You must place a colon between the username and the message.)"
             self.connector.send_message(
-                "Sorry, I don\u2019t know \u201c{0}\u201d.".format(target_name) + colon_info
+                "{1}: Sorry, I don\u2019t know \u201c{0}\u201d.{2}".format(target_name, message.user_name, colon_info)
             )
             return
 
@@ -121,13 +121,13 @@ class Messenger(Module):
 
         if lower_target_name == lower_sender_name:
             self.connector.send_message(
-                "Talking to ourselves? Well, no skin off my back. I\u2019ll deliver "
-                "your message to you right away. ;)"
+                ("{0}: Talking to ourselves? Well, no skin off my back. I\u2019ll deliver "
+                 "your message to you right away. ;)").format(message.user_name)
             )
         else:
-            sent_template = "Aye-aye! I\u2019ll deliver your message to " + \
+            sent_template = "{1}: Aye-aye! I\u2019ll deliver your message to " + \
                 "[i][noparse]{0}[/noparse][/i] next time I see \u2019em!"
-            self.connector.send_message(sent_template.format(user_info[1]))
+            self.connector.send_message(sent_template.format(user_info[1], message.user_name))
 
     def format_timestamp(self, message_id, the_timestamp):
         timestamp_format = "[{0}]"
@@ -312,7 +312,7 @@ class Messenger(Module):
                     the_sender,
                     the_body
                 ))
-            self.connector.send_message("Have a nice day!")
+            self.connector.send_message("{0}: Have a nice day!".format(message.user_name))
 
         # delete those messages
         cursor = self.database.cursor()
