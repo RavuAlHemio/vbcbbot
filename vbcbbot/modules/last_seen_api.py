@@ -32,7 +32,7 @@ class LastSeenApi(Module):
 
         nicknames = [nick.strip().replace("[/noparse]", "") for nick in match.group(2).split(";")]
         nicknames = [nick for nick in nicknames if len(nick) > 0]
-        nicknames_times = {}
+        nicknames_infos = {}
 
         if len(nicknames) == 0:
             return
@@ -59,23 +59,41 @@ class LastSeenApi(Module):
             response_data = response.read().decode("us-ascii")
 
             if response_data == "NULL":
-                nicknames_times[nickname] = None
+                nicknames_infos[nickname] = None
                 continue
+
+            pieces = response_data.split(" ")
+            if len(pieces) != 3:
+                logger.debug("unexpected server answer {0} for nickname {1}".format(
+                    repr(response_data), repr(nickname)
+                ))
+                continue
+
+            (timestamp_string, message_id_string, epoch_string) = pieces
 
             try:
-                timestamp = int(response_data)
+                timestamp = time.strftime("%Y-%m-%d %H:%M", time.localtime(int(timestamp_string)))
             except ValueError:
-                nicknames_times[nickname] = -1
-                continue
+                timestamp = -1
 
-            nicknames_times[nickname] = time.strftime("%Y-%m-%d %H:%M", time.localtime(timestamp))
+            try:
+               message_id = int(message_id_string)
+            except ValueError:
+                message_id = None
+
+            try:
+                epoch = int(epoch_string)
+            except ValueError:
+                epoch = None
+
+            nicknames_infos[nickname] = (timestamp, message_id, epoch)
 
         if len(nicknames) == 1:
             # single-user request
             nickname = nicknames[0]
-            t = nicknames_times[nickname]
+            info = nicknames_infos[nickname]
 
-            if t is None:
+            if info is None:
                 self.connector.send_message(
                     "{0}: The great and powerful [i]signanz[/i] doesn't remember seeing "
                     "[i]{1}[/i].".format(
@@ -83,30 +101,47 @@ class LastSeenApi(Module):
                         self.connector.escape_outgoing_text(nickname)
                     )
                 )
-            elif t == -1:
-                self.connector.send_message(
-                    "{0}: The great and powerful [i]signanz[/i]'s answer confused me\u2014sorry!".format(
-                        message.user_name
-                    )
-                )
             else:
-                self.connector.send_message(
-                    "{0}: The last time the great and powerful [i]signanz[/i] saw "
-                    "[i][noparse]{1}[/noparse][/i] was {2}.".format(
-                        message.user_name, nickname, t
+                (t, mid, epoch) = nicknames_infos[nickname]
+                if t == -1:
+                    self.connector.send_message(
+                        "{0}: The great and powerful [i]signanz[/i]'s answer confused me\u2014sorry!".format(
+                            message.user_name
+                        )
                     )
-                )
+                else:
+                    timestamp_output = t
+                    if self.archive_link_template is not None and mid is not None and epoch is not None:
+                        timestamp_output = "[url={0}]{1}[/url]".format(
+                            self.archive_link_template.format(msgid=mid, epoch=epoch),
+                            t
+                        )
+                    self.connector.send_message(
+                        "{0}: The last time the great and powerful [i]signanz[/i] saw "
+                        "[i][noparse]{1}[/noparse][/i] was {2}.".format(
+                            message.user_name, nickname, timestamp_output
+                        )
+                    )
         else:
             response_bits = []
             for nickname in nicknames:
-                t = nicknames_times[nickname]
+                info = nicknames_infos[nickname]
 
-                if t is None:
-                    t = "never"
-                elif t == -1:
-                    t = "o_O"
+                if info is None:
+                    text = "never"
+                else:
+                    (t, mid, epoch) = info
+                    if t == -1:
+                        text = "o_O"
+                    else:
+                        text = t
+                        if self.archive_link_template is not None and mid is not None and epoch is not None:
+                            text = "[url={0}]{1}[/url]".format(
+                                self.archive_link_template.format(msgid=mid, epoch=epoch),
+                                t
+                            )
 
-                response_bits.append("[i][noparse]{0}[/noparse][/i]: {1}".format(nickname, t))
+                response_bits.append("[i][noparse]{0}[/noparse][/i]: {1}".format(nickname, text))
 
             self.connector.send_message(
                 "{0}: The great and powerful [i]signanz[/i] saw: ".format(message.user_name) +
@@ -135,3 +170,7 @@ class LastSeenApi(Module):
         self.api_password = ""
         if "password" in config_section:
             self.api_password = config_section["password"]
+
+        self.archive_link_template = None
+        if "archive link template" in config_section:
+            self.archive_link_template = config_section["archive link template"]
