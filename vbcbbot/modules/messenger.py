@@ -82,9 +82,6 @@ class Messenger(Module):
         elif lower_target_name == self.connector.username.lower():
             self.connector.send_message("{0}: Sorry, I don\u2019t deliver to myself!".format(message.user_name))
             return
-        elif lower_target_name in self.connector.banned_nicknames:
-            self.connector.send_message("{1}: Sorry, but I\u2019ve been told to ignore \u201c{0}\u201d.".format(target_name, message.user_name))
-            return
 
         try:
             user_info = self.connector.get_user_id_and_nickname_for_uncased_name(target_name)
@@ -211,21 +208,27 @@ class Messenger(Module):
         else:
             self.connector.send_message("{0} has {1} messages left to deliver!".format(message.user_name, remaining))
 
-    def message_received(self, message):
+    def process_message(self, message, modified=False, initial_salvo=False, user_banned=False):
         """
-        Called by the communicator when a new message has been received.
+        Called by the communicator when a new or updated message has been received.
         :type message: vbcbbot.chatbox_connector.ChatboxMessage
         """
+        if modified or initial_salvo:
+            return
+
         lower_sender_name = message.user_name.lower()
 
         # parse and strip
         body = remove_control_characters_and_strip(message.decompiled_body())
 
-        # process potential message sends
-        self.potential_message_send(message, body, lower_sender_name)
+        if not user_banned:
+            # process potential message send
+            self.potential_message_send(message, body, lower_sender_name)
 
-        # process potential deliver request
-        self.potential_deliver_request(message, body, lower_sender_name)
+            # process potential deliver request
+            self.potential_deliver_request(message, body, lower_sender_name)
+
+        # even banned users get messages; they just can't respond to them
 
         if self.connector.should_stfu():
             # don't bother just yet
