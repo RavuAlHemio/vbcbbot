@@ -3,6 +3,31 @@ __author__ = 'ondra'
 
 class Module:
     """An abstract module which handles chatbox events."""
+    def process_message(self, message, modified=False, initial_salvo=False, user_banned=False):
+        """
+        Act upon a new or modified message.
+        :param message: The new or updated message object.
+        :type message: vbcbbot.chatbox_connector.ChatboxMessage
+        :param modified: True if this is a modified message, False if this is a new message.
+        :type modified: bool
+        :param initial_salvo: True if this message is part of the "just connected" salvo.
+        :type initial_salvo: bool
+        :param user_banned: True if the user who sent this message is currently banned.
+        :type user_banned: False
+        """
+
+        # default behavior ensures compatibility
+
+        if user_banned:
+            return
+
+        if initial_salvo:
+            self.message_received_on_new_connection(message)
+        elif modified:
+            self.message_modified(message)
+        else:
+            self.message_received(message)
+
     def message_modified(self, modified_message):
         """
         Act upon a modification of a message currently visible in the chatbox. Called by the
@@ -38,9 +63,7 @@ class Module:
         :param config_section: A dictionary of configuration values for this module.
         """
         self.connector = connector
-        self.connector.subscribe_to_new_messages(self.message_received)
-        self.connector.subscribe_to_modified_messages(self.message_modified)
-        self.connector.subscribe_to_new_messages_from_salvo(self.message_received_on_new_connection)
+        self.connector.subscribe_to_message_updates(self.process_message)
 
     def start(self):
         """

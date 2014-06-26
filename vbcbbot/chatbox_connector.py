@@ -260,9 +260,7 @@ class ChatboxConnector:
 
         # "declare" these variables for later
         self.banned_nicknames = set()
-        self.new_message_subscribers = set()
-        self.new_message_from_salvo_subscribers = set()
-        self.message_modified_subscribers = set()
+        self.subscribers = set()
         self.old_message_ids_to_bodies = {}
         self.lowercase_usernames_to_user_id_name_pairs = {}
         self.forum_smiley_codes_to_urls = {}
@@ -635,9 +633,7 @@ class ChatboxConnector:
             nick = "".join(nick_element.itertext())
             nick_code = children_to_string(nick_element)
 
-            if nick.lower() in self.banned_nicknames:
-                # b&
-                continue
+            is_banned = (nick.lower() in self.banned_nicknames)
 
             # cache the nickname
             self.lowercase_usernames_to_user_id_name_pairs[nick.lower()] = (user_id, nick)
@@ -650,10 +646,10 @@ class ChatboxConnector:
                 old_body = self.old_message_ids_to_bodies[message_id]
                 if old_body != message_body:
                     self.old_message_ids_to_bodies[message_id] = message_body
-                    new_and_edited_messages.insert(0, (True, message))
+                    new_and_edited_messages.insert(0, (True, is_banned, message))
             else:
                 self.old_message_ids_to_bodies[message_id] = message_body
-                new_and_edited_messages.insert(0, (False, message))
+                new_and_edited_messages.insert(0, (False, is_banned, message))
 
         # cull the bodies of messages that aren't visible anymore
         for message_id in list(self.old_message_ids_to_bodies.keys()):
@@ -661,64 +657,30 @@ class ChatboxConnector:
                 del self.old_message_ids_to_bodies[message_id]
 
         # distribute the news and modifications
-        for (is_edited, new_message) in new_and_edited_messages:
-            if self.initial_salvo:
-                self.distribute_new_message_from_salvo(new_message)
-            elif is_edited:
-                self.distribute_modified_message(new_message)
-            else:
-                self.distribute_new_message(new_message)
+        for (is_edited, is_banned, new_message) in new_and_edited_messages:
+            self.distribute_message(new_message, is_edited, self.initial_salvo, is_banned)
 
         self.initial_salvo = False
         self.last_message_received = new_last_message
 
-    def distribute_new_message(self, new_message):
-        """Distributes a new message to the subscribers."""
-        for subscriber in self.new_message_subscribers:
+    def distribute_message(self, message, modified=False, initial_salvo=False, user_banned=False):
+        """Distributes a message to the subscribers."""
+        for subscriber in self.subscribers:
             try:
-                subscriber(new_message)
+                subscriber(message, modified=modified, initial_salvo=initial_salvo, user_banned=user_banned)
             except:
-                logger.exception("distribute_new_message: subscriber")
+                logger.exception("distribute_message(modified={0}, initial_salvo={1}, user_banned={2}): subscriber".format(
+                    modified, initial_salvo, user_banned
+                ))
 
-    def distribute_new_message_from_salvo(self, new_message):
-        """Distributes a new message to the subscribers."""
-        for subscriber in self.new_message_from_salvo_subscribers:
-            try:
-                subscriber(new_message)
-            except:
-                logger.exception("distribute_new_message_from_salvo: subscriber")
-
-    def distribute_modified_message(self, modified_message):
-        """Distributes a modified message to the subscribers."""
-        for subscriber in self.message_modified_subscribers:
-            try:
-                subscriber(modified_message)
-            except:
-                logger.exception("distribute_modified_message: subscriber")
-
-    def subscribe_to_new_messages(self, new_subscriber):
+    def subscribe_to_message_updates(self, new_subscriber):
         """
-        Add a new subscriber to be notified when a new message is received.
-        :param new_subscriber: A callable object with one positional argument that will receive the
-        new message (a ChatboxMessage instance).
+        Adds a new subscriber to be notified when a (new or updated) message is received.
+        :param new_subscriber: A callable object (with one positional and three keyword arguments)
+        that will receive the new message (a ChatboxMessage instance). The three keyword arguments
+        are booleans: modified, initial_salvo and user_banned.
         """
-        self.new_message_subscribers.add(new_subscriber)
-
-    def subscribe_to_modified_messages(self, new_subscriber):
-        """
-        Add a new subscriber to be notified when a visible message is modified.
-        :param new_subscriber: A callable object with one positional argument that will receive the
-        updated message (a ChatboxMessage instance).
-        """
-        self.message_modified_subscribers.add(new_subscriber)
-
-    def subscribe_to_new_messages_from_salvo(self, new_subscriber):
-        """
-        Add a new subscriber to be notified when a new message from the initial salvo is received.
-        :param new_subscriber: A callable object with one positional argument that will receive the
-        new message (a ChatboxMessage instance).
-        """
-        self.new_message_from_salvo_subscribers.add(new_subscriber)
+        self.subscribers.add(new_subscriber)
 
     def perform_reading(self):
         """
@@ -788,6 +750,5 @@ if __name__ == '__main__':
     my_password = "ThisIsNotMyRealPassword;-)"
 
     conn = ChatboxConnector("http://forum.example.com/", "User Name", my_password)
-    conn.subscribe_to_new_messages(message_received)
-    conn.subscribe_to_modified_messages(message_modified)
+    conn.subscribe_to_message_updates(message_received)
     conn.start()
