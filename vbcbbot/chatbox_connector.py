@@ -3,6 +3,7 @@ from vbcbbot.html_decompiler import HtmlDecompiler
 import http.client as hcl
 import http.cookiejar as cj
 import io
+from itertools import islice
 import logging
 from lxml import etree
 from lxml.cssselect import CSSSelector
@@ -77,9 +78,7 @@ def ajax_url_encode_string(string):
         else:
             # escape it as UTF-16 with %u
             utf16_bytes = c.encode("utf-16be")
-            for i in range(len(utf16_bytes)//2):
-                top_byte = utf16_bytes[2*i + 0]
-                bottom_byte = utf16_bytes[2*i + 1]
+            for (top_byte, bottom_byte) in zip(islice(utf16_bytes, 0, None, 2), islice(utf16_bytes, 1, None, 2)):
                 ret += "%u{0:02X}{1:02X}".format(top_byte, bottom_byte)
     return ret
 
