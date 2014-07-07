@@ -487,7 +487,7 @@ class ChatboxConnector:
             return etree.XML(ajax_bytes)
         except:
             logger.exception("AJAX response parse")
-            raise TransferError()
+            return self.retry(retry, self.ajax, operation, parameters)
 
     def send_message(self, message, bypass_stfu=False, bypass_filters=False, custom_smileys=False, retry=0):
         """
