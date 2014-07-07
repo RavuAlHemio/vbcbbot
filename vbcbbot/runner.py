@@ -45,7 +45,7 @@ def run():
                 pieces = smiley_line.strip().split(" ")
                 if len(pieces) != 2:
                     continue
-                smiley, url = pieces[0], pieces[1]
+                smiley, url = pieces
                 custom_smiley_to_url[smiley] = url
                 custom_url_to_smiley[url] = smiley
 
