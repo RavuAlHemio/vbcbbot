@@ -177,7 +177,7 @@ class LinkInfo(Module):
         links = find_links(dom)
 
         # fetch their info
-        links_infos = [(link, obtain_link_info(link)) for link in links]
+        links_infos = ((link, obtain_link_info(link)) for link in links)
 
         for (link, link_info) in links_infos:
             # clear out [noparse] tags

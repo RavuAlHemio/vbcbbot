@@ -42,7 +42,7 @@ class NopeSmileys(Module):
                     pass
 
                 if len(send_these) > 0:
-                    send_these_commands = ["[icon]{0}[/icon]".format(t) for t in send_these]
+                    send_these_commands = ("[icon]{0}[/icon]".format(t) for t in send_these)
                     message = " ".join(send_these_commands)
                     self.connector.send_message(message)
 

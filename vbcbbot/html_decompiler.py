@@ -36,7 +36,7 @@ class Element(Node):
             av = ""
 
         return "[{n}{av}]{c}[/{n}]".format(
-            n=self.name, av=av, c="".join([str(child) for child in self.children])
+            n=self.name, av=av, c="".join(str(child) for child in self.children)
         )
 
     def __repr__(self):
@@ -54,7 +54,7 @@ class Element(Node):
             av = ""
 
         return "[noparse][[/noparse]{n}{av}]{c}[noparse][[/noparse]/{n}]".format(
-            n=self.name, av=av, c="".join([child.verbatim_string for child in self.children])
+            n=self.name, av=av, c="".join(child.verbatim_string for child in self.children)
         )
 
 
@@ -63,13 +63,13 @@ class ListItem(Node):
         self.children = children
 
     def __str__(self):
-        return "[*]" + "".join([str(child) for child in self.children])
+        return "[*]" + "".join(str(child) for child in self.children)
 
     def __repr__(self):
         return "ListItem({0})".format(repr(self.children))
 
     def verbatim_string(self):
-        return "[noparse][*][/noparse]" + "".join([child.verbatim_string for child in self.children])
+        return "[noparse][*][/noparse]" + "".join(child.verbatim_string for child in self.children)
 
 
 class Text(Node):
@@ -109,13 +109,13 @@ def join_adjacent_text_nodes(dom_list):
         if type(item) == Text:
             text_nodes_to_join.append(item)
         else:
-            texts = "".join([n.text for n in text_nodes_to_join])
+            texts = "".join(n.text for n in text_nodes_to_join)
             if len(texts) > 0:
                 ret.append(Text(texts))
             ret.append(item)
             text_nodes_to_join = []
     if len(text_nodes_to_join) > 0:
-        texts = "".join([n.text for n in text_nodes_to_join])
+        texts = "".join(n.text for n in text_nodes_to_join)
         if len(texts) > 0:
             ret.append(Text(texts))
     return ret

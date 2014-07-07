@@ -116,7 +116,7 @@ class BinAdmin(Module):
                 msg = "Ich kenne folgende Tonne: "
             else:
                 msg = "Ich kenne folgende Tonnen: "
-            msg += ", ".join([repr(waste_bin) for waste_bin in bins])
+            msg += ", ".join(repr(waste_bin) for waste_bin in bins)
             self.connector.send_message(msg)
             return
 

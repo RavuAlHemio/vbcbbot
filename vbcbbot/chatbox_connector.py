@@ -184,7 +184,7 @@ class ChatboxMessage:
         :return: The username decompiled using HtmlDecompiler.
         :rtype: str
         """
-        return "".join([str(e) for e in self.decompiled_user_name_dom()])
+        return "".join(str(e) for e in self.decompiled_user_name_dom())
 
     def body_io(self):
         """
@@ -216,7 +216,7 @@ class ChatboxMessage:
         :return: The body of the message decompiled using HtmlDecompiler.
         :rtype: str
         """
-        return "".join([str(e) for e in self.decompiled_body_dom()])
+        return "".join(str(e) for e in self.decompiled_body_dom())
 
 
 class ChatboxConnector:
