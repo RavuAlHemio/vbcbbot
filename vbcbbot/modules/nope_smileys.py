@@ -17,6 +17,8 @@ class NopeSmileys(Module):
         """Called by the communicator when a new message has been received."""
 
         body_lxml = message.body_lxml()
+        if body_lxml is None:
+            return
         for image in body_lxml.iterfind(".//img[@src]"):
             src = image.attrib['src']
             if src in self.nope_mapping:

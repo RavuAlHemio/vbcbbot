@@ -178,6 +178,8 @@ class HtmlDecompiler:
 
     def decompile_lxml(self, elem, watch_out_for_p=False):
         ret = []
+        if elem is None:
+            return ret
         for child in elem.xpath("./node()"):
             if hasattr(child, "iterchildren"):
                 # it's a tag

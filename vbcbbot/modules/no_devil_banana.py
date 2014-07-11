@@ -17,6 +17,8 @@ class NoDevilBanana(Module):
         """Called by the communicator when a visible message has been modified."""
 
         body_lxml = message.body_lxml()
+        if body_lxml is None:
+            return
         for image in body_lxml.iterfind(".//img[@src]"):
             if image.attrib['src'] == self.no_devil_banana_url:
                 logger.debug(":nodb: found in {0}'s edited message {1}".format(

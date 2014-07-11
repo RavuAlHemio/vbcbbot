@@ -29,7 +29,10 @@ class Motivator(Module):
         """Called by the communicator when a new message has been received."""
 
         # extract text, strip and make lowercase
-        body = "".join(message.body_lxml().itertext()).strip().lower()
+        body_lxml = message.body_lxml()
+        if body_lxml is None:
+            return
+        body = "".join(body_lxml.itertext()).strip().lower()
 
         # find the verb
         for (verb, categories_to_motivators) in self.verbs_to_categories_to_motivators.items():

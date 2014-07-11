@@ -102,7 +102,10 @@ class Ma48(Module):
             # ignore my own bin throwing
             return
 
-        body = "".join(message.body_lxml.itertext())
+        body_lxml = message.body_lxml()
+        if body_lxml is None:
+            return
+        body = "".join(body_lxml.itertext())
 
         match = waste_bin_re.search(body)
         if match is not None:

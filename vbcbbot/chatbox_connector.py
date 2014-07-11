@@ -21,6 +21,7 @@ __author__ = 'ondra'
 logger = logging.getLogger("vbcbbot.chatbox_connector")
 url_safe_characters = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.")
 timestamp_pattern = re.compile("[[]([0-9][0-9]-[0-9][0-9]-[0-9][0-9], [0-9][0-9]:[0-9][0-9])[]]")
+xml_char_escape_pattern = re.compile("[&][#]([0-9]+|x[0-9a-fA-F]+)[;]")
 
 
 def fish_out_id(element, url_piece):
@@ -60,6 +61,57 @@ def filter_combining_mark_clusters(string, maximum_marks=4):
         else:
             mark_count = 0
             ret += c
+    return ret
+
+
+def sub_invalid_xml_escape(match):
+    """
+    Substitutes invalid XML escapes with nothing.
+    :param match: The regular expression match object.
+    :return: The string to replace the match with.
+    :rtype: str
+    """
+    number = match.group(1)
+    if number is None:
+        return match.group(0)
+    elif number[0] == "x":
+        # hex escape
+        c = int(number[1:], 16)
+    else:
+        # decimal escape
+        c = int(number, 10)
+
+    if c == 0:
+        return ""
+    elif c >= 0xD800 and c <= 0xDFFF:
+        return ""
+    else:
+        return match.group(0)
+
+
+def filter_invalid_xml(string):
+    """
+    Removes characters and XML character escapes that are forbidden by the XML
+    standard.
+    :param string: The string to filter.
+    :type string: str
+    :return: The filtered string.
+    :rtype: str
+    """
+    # (NUL and surrogates are invalid)
+    # filter verbatim characters first
+    verbesc = []
+    for c in string:
+        if ord(c) == 0:
+            pass
+        elif ord(c) >= 0xD800 and ord(c) <= 0xDFFF:
+            pass
+        else:
+            verbesc.append(c)
+
+    # filter escapes
+    ret = xml_char_escape_pattern.sub(sub_invalid_xml_escape, "".join(verbesc))
+
     return ret
 
 
@@ -196,9 +248,12 @@ class ChatboxMessage:
     def body_lxml(self):
         """
         Return a new lxml HTML instance for the body of the message.
-        :return: A new lxml HTML instance for the body of the message.
-        :rtype: lxml.etree.HTML
+        :return: A new lxml HTML instance for the body of the message, or None if the body is
+        empty.
+        :rtype: lxml.etree.HTML|None
         """
+        if len(self.body) == 0:
+            return None
         return etree.HTML(self.body)
 
     def decompiled_body_dom(self):
@@ -570,7 +625,7 @@ class ChatboxConnector:
                 self.retry(retry, self.fetch_new_messages)
                 return
         messages_string = messages_bytes.decode(self.server_encoding)
-        messages = etree.HTML(messages_string)
+        messages = etree.HTML(filter_invalid_xml(messages_string))
 
         all_trs = list(messages.iterfind("./body/tr"))
         if len(all_trs) == 0:
