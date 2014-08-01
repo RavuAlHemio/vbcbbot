@@ -1,5 +1,6 @@
 from vbcbbot import chatbox_connector
 from vbcbbot.modules import Module
+from vbcbbot.utils import remove_control_characters_and_strip
 
 import logging
 import re
@@ -40,14 +41,6 @@ def split_recipient_and_message(text):
             else:
                 recipient += c
     raise ValueError("You need to put a colon between the nickname and the message!")
-
-
-def remove_control_characters_and_strip(text):
-    ret = ""
-    for c in text:
-        if unicodedata.category(c)[0] != 'C':
-            ret += c
-    return ret.strip()
 
 
 class Messenger(Module):
