@@ -110,17 +110,17 @@ class Echelon(Module):
         cursor = self.database.cursor()
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS triggers (
-            trigger_id INT NOT NULL PRIMARY KEY AUTOINCREMENT,
+            trigger_id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_name_lower TEXT NOT NULL,
             regex TEXT NOT NULL
         )
         """)
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS incidents (
-            incident_id INT NOT NULL PRIMARY KEY AUTOINCREMENT
-            trigger_id INT NOT NULL REFERENCES triggers (trigger_id),
-            message_id INT NOT NULL,
-            timestamp INT NOT NULL
+            incident_id INTEGER PRIMARY KEY AUTOINCREMENT
+            trigger_id INTEGER NOT NULL REFERENCES triggers (trigger_id),
+            message_id INTEGER NOT NULL,
+            timestamp INTEGER NOT NULL
         )
         """)
         cursor.execute("CREATE INDEX IF NOT EXISTS index_user_name_lower ON triggers (user_name_lower)")
