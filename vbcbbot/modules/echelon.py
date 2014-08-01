@@ -117,8 +117,8 @@ class Echelon(Module):
         """)
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS incidents (
-            incident_id INTEGER PRIMARY KEY AUTOINCREMENT
-            trigger_id INTEGER NOT NULL,
+            incident_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            trigger_id INTEGER NOT NULL REFERENCES triggers (trigger_id),
             message_id INTEGER NOT NULL,
             timestamp INTEGER NOT NULL
         )
