@@ -80,8 +80,8 @@ class Messenger(Module):
             user_info = self.connector.get_user_id_and_nickname_for_uncased_name(target_name)
         except chatbox_connector.TransferError:
             self.connector.send_message(
-                "{1}: Sorry, I couldn\u2019t verify if \u201c{0}\u201d exists because the forum isn\u2019t being "
-                "cooperative. Please try again later!".format(target_name, message.user_name)
+                "[noparse]{1}[/noparse]: Sorry, I couldn\u2019t verify if \u201c{0}\u201d exists because the forum "
+                "isn\u2019t being cooperative. Please try again later!".format(target_name, message.user_name)
             )
             return
 
@@ -92,7 +92,9 @@ class Messenger(Module):
             elif len(target_name) > 32:
                 colon_info = " (You must place a colon between the username and the message.)"
             self.connector.send_message(
-                "{1}: Sorry, I don\u2019t know \u201c{0}\u201d.{2}".format(target_name, message.user_name, colon_info)
+                "[noparse]{1}[/noparse]: Sorry, I don\u2019t know \u201c{0}\u201d.{2}".format(
+                    target_name, message.user_name, colon_info
+                )
             )
             return
 
@@ -111,12 +113,12 @@ class Messenger(Module):
 
         if lower_target_name == lower_sender_name:
             self.connector.send_message(
-                ("{0}: Talking to ourselves? Well, no skin off my back. I\u2019ll deliver "
-                 "your message to you right away. ;)").format(message.user_name)
+                ("[noparse]{0}[/noparse]: Talking to ourselves? Well, no skin off my back. I\u2019ll deliver your "
+                 "message to you right away. ;)").format(message.user_name)
             )
         else:
-            sent_template = "{1}: Aye-aye! I\u2019ll deliver your message to " + \
-                "[i][noparse]{0}[/noparse][/i] next time I see \u2019em!"
+            sent_template = "[noparse]{1}[/noparse]: Aye-aye! I\u2019ll deliver your message to "
+            "[i][noparse]{0}[/noparse][/i] next time I see \u2019em!"
             self.connector.send_message(sent_template.format(user_info[1], message.user_name))
 
     def format_timestamp(self, message_id, the_timestamp):
@@ -138,7 +140,9 @@ class Messenger(Module):
         fetch_count = int(match.group(2))
         if fetch_count > 1000:
             self.connector.send_message(
-                "{0}: I am absolutely not delivering that many messages at once.".format(message.user_name)
+                "[noparse]{0}[/noparse]: I am absolutely not delivering that many messages at once.".format(
+                    message.user_name
+                )
             )
             return
 
@@ -195,11 +199,17 @@ class Messenger(Module):
         # output remaining messages count
         if remaining == 0:
             if len(messages) > 0:
-                self.connector.send_message("{0} has no more messages left to deliver!".format(message.user_name))
+                self.connector.send_message("[noparse]{0}[/noparse] has no more messages left to deliver!".format(
+                    message.user_name
+                ))
             else:
-                self.connector.send_message("{0} has no messages to deliver!".format(message.user_name))
+                self.connector.send_message("[noparse]{0}[/noparse] has no messages to deliver!".format(
+                    message.user_name
+                ))
         else:
-            self.connector.send_message("{0} has {1} messages left to deliver!".format(message.user_name, remaining))
+            self.connector.send_message("[noparse]{0}[/noparse] has {1} messages left to deliver!".format(
+                message.user_name, remaining
+            ))
 
     def process_message(self, message, modified=False, initial_salvo=False, user_banned=False):
         """
@@ -308,7 +318,7 @@ class Messenger(Module):
                     the_sender,
                     the_body
                 ))
-            self.connector.send_message("{0}: Have a nice day!".format(message.user_name))
+            self.connector.send_message("[noparse]{0}[/noparse]: Have a nice day!".format(message.user_name))
 
         # delete those messages
         cursor = self.database.cursor()
