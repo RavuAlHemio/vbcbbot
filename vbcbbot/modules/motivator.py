@@ -20,7 +20,7 @@ class Motivator(Module):
         motivator = motivator.replace("&&USERNAME&&", request_message.user_name)
 
         # send
-        self.connector.send_message("{0}: {1}".format(request_message.user_name, motivator))
+        self.connector.send_message("[noparse]{0}[/noparse]: {1}".format(request_message.user_name, motivator))
 
     def message_received_on_new_connection(self, message):
         return
@@ -48,7 +48,9 @@ class Motivator(Module):
             elif body.startswith("!{0} me using ".format(verb)):
                 category = body[len("!{0} me using ".format(verb)):].strip()
                 if category not in categories_to_motivators:
-                    self.connector.send_message("{0}: I don\u2019t know that category.")
+                    self.connector.send_message("[noparse]{0}[/noparse]: I don\u2019t know that category.".format(
+                        message.user_name
+                    ))
                     return
 
                 motivator_list = list(categories_to_motivators[category])
@@ -56,7 +58,7 @@ class Motivator(Module):
 
             elif body == "!how can you {0} me".format(verb):
                 categories_string = ", ".join(sorted(categories_to_motivators.keys()))
-                self.connector.send_message("{0}: I can {2} you using {1}".format(
+                self.connector.send_message("[noparse]{0}[/noparse]: I can {2} you using {1}".format(
                     message.user_name, categories_string, verb
                 ))
 

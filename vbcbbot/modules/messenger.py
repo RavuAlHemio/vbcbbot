@@ -184,7 +184,7 @@ class Messenger(Module):
         # output them, if any
         if len(messages) > 0:
             self.connector.send_message(
-                "Replaying {0} messages for {1}!".format(len(messages), message.user_name)
+                "Replaying {0} messages for [noparse]{1}[/noparse]!".format(len(messages), message.user_name)
             )
             for (the_timestamp, the_sender, the_body, the_message_id) in messages:
                 logger.debug("delivering {0}'s retained message {1} to {2} as part of a chunk".format(

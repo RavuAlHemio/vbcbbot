@@ -33,7 +33,7 @@ class Thanks(Module):
             nickname = thanks_match.group(2).strip()
             lower_nickname = nickname.lower()
             if lower_nickname == message.user_name.lower():
-                self.connector.send_message("You are so full of yourself, {0}.".format(
+                self.connector.send_message("You are so full of yourself, [noparse]{0}[/noparse].".format(
                     message.user_name
                 ))
                 return
@@ -67,7 +67,8 @@ class Thanks(Module):
             )
             for row in cursor:
                 self.connector.send_message(
-                    "{0}: Alright! By the way, {1} has been thanked {2} until now.".format(
+                    "[noparse]{0}[/noparse]: Alright! By the way, [noparse]{1}[/noparse] has been thanked {2} until "
+                    "now.".format(
                         message.user_name, user_info[1],
                         "once" if row[0] == 1 else "{0} times".format(row[0])
                     )
@@ -81,10 +82,10 @@ class Thanks(Module):
             try:
                 user_info = self.connector.get_user_id_and_nickname_for_uncased_name(nickname)
                 if user_info is None:
-                    self.connector.send_message("I don't know '{0}'!".format(nickname))
+                    self.connector.send_message("I don't know '[noparse]{0}[/noparse]'!".format(nickname))
                     return
             except chatbox_connector.TransferError:
-                self.connector.send_message("I don't know '{0}'!".format(nickname))
+                self.connector.send_message("I don't know '[noparse]{0}[/noparse]'!".format(nickname))
                 return
 
             cursor = self.database.cursor()
@@ -116,7 +117,7 @@ class Thanks(Module):
                 )
                 grateful_counts = []
                 for row in cursor:
-                    grateful_counts.append("{0}: {1}\u00D7".format(row[0], row[1]))
+                    grateful_counts.append("[noparse]{0}[/noparse]: {1}\u00D7".format(row[0], row[1]))
 
                 # mention that the list is truncated if there might be more than self.most_grateful_count
                 count_string = ""
@@ -126,7 +127,7 @@ class Thanks(Module):
                 stat_string = " (Most grateful{0}: {1})".format(count_string, ", ".join(grateful_counts))
 
             self.connector.send_message(
-                "{0}: {1} has {2} until now.{3}".format(
+                "[noparse]{0}: {1}[/noparse] has {2} until now.{3}".format(
                     message.user_name, user_info[1], count_phrase, stat_string
                 )
             )

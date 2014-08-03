@@ -98,7 +98,7 @@ class LastSeenApi(Module):
 
             if info is None:
                 self.connector.send_message(
-                    "{0}: The great and powerful [i]signanz[/i] doesn't remember seeing "
+                    "[noparse]{0}[/noparse]: The great and powerful [i]signanz[/i] doesn't remember seeing "
                     "[i]{1}[/i].".format(
                         message.user_name,
                         self.connector.escape_outgoing_text(nickname)
@@ -108,7 +108,8 @@ class LastSeenApi(Module):
                 (t, mid, epoch) = nicknames_infos[nickname]
                 if t == -1:
                     self.connector.send_message(
-                        "{0}: The great and powerful [i]signanz[/i]'s answer confused me\u2014sorry!".format(
+                        "[noparse]{0}[/noparse]: The great and powerful [i]signanz[/i]'s answer confused "
+                        "me\u2014sorry!".format(
                             message.user_name
                         )
                     )
@@ -120,7 +121,7 @@ class LastSeenApi(Module):
                             t
                         )
                     self.connector.send_message(
-                        "{0}: The last time the great and powerful [i]signanz[/i] saw "
+                        "[noparse]{0}[/noparse]: The last time the great and powerful [i]signanz[/i] saw "
                         "[i][noparse]{1}[/noparse][/i] was {2}.".format(
                             message.user_name, nickname, timestamp_output
                         )
@@ -147,7 +148,7 @@ class LastSeenApi(Module):
                 response_bits.append("[i][noparse]{0}[/noparse][/i]: {1}".format(nickname, text))
 
             self.connector.send_message(
-                "{0}: The great and powerful [i]signanz[/i] saw: ".format(message.user_name) +
+                "[noparse]{0}[/noparse]: The great and powerful [i]signanz[/i] saw: ".format(message.user_name) +
                 ", ".join(
                     response_bits
                 )
