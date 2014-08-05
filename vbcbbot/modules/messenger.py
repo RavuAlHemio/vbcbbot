@@ -117,8 +117,10 @@ class Messenger(Module):
                  "message to you right away. ;)").format(message.user_name)
             )
         else:
-            sent_template = "[noparse]{1}[/noparse]: Aye-aye! I\u2019ll deliver your message to "
-            "[i][noparse]{0}[/noparse][/i] next time I see \u2019em!"
+            sent_template = (
+                "[noparse]{1}[/noparse]: Aye-aye! I\u2019ll deliver your message to [i][noparse]{0}[/noparse][/i] next "
+                "time I see \u2019em!"
+            )
             self.connector.send_message(sent_template.format(user_info[1], message.user_name))
 
     def format_timestamp(self, message_id, the_timestamp):
