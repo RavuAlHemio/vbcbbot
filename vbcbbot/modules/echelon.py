@@ -53,7 +53,7 @@ class Echelon(Module):
                     "SELECT COUNT(*) FROM incidents WHERE trigger_id IN ("
                     "SELECT trigger_id FROM triggers WHERE user_name_lower=?"
                     ")",
-                    (stats_match.group(1).lower())
+                    (stats_match.group(1).lower(),)
                 )
                 the_count = None
                 for row in cursor:
