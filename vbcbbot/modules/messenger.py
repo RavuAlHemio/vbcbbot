@@ -275,7 +275,7 @@ class Messenger(Module):
 
         if len(messages) == 0:
             # meh
-            return
+            pass
         elif len(messages) == 1:
             # one message
             (the_timestamp, the_sender, the_body, the_message_id) = messages[0]
