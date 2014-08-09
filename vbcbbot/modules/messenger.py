@@ -249,7 +249,10 @@ class Messenger(Module):
         )
         messages = []
         for bin_row in cursor:
-            messages.append((bin_row[0], bin_row[1], bin_row[2], bin_row[3]))
+            # skip messages that the user is directly responding to
+            # (0: the !msg call, 1: the confirmation, 2: the response)
+            if bin_row[3] + 2 < message.id:
+                messages.append((bin_row[0], bin_row[1], bin_row[2], bin_row[3]))
         cursor.close()
 
         # check how many messages the user has on retainer
