@@ -253,6 +253,10 @@ class Messenger(Module):
             # (0: the !msg call, 1: the confirmation, 2: the response)
             if bin_row[3] + 2 < message.id:
                 messages.append((bin_row[0], bin_row[1], bin_row[2], bin_row[3]))
+            else:
+                logger.debug("dropping {0}'s message #{1} for {2} ({3}) due to proximity to #{4}".format(
+                    bin_row[1], bin_row[3], message.user_name, bin_row[2], message.id
+                ))
         cursor.close()
 
         # check how many messages the user has on retainer
