@@ -11,7 +11,7 @@ import unicodedata
 __author__ = 'ondra'
 
 logger = logging.getLogger("vbcbbot.modules.messenger")
-msg_trigger = re.compile("^!(msg|mail) (.+)$")
+msg_trigger = re.compile("^!(s?)(msg|mail) (.+)$")
 deliver_trigger = re.compile("^!(delivermsg) ([0-9]+)$")
 
 
@@ -55,7 +55,7 @@ class Messenger(Module):
         if match is None:
             return
 
-        recipient_and_message = match.group(2)
+        recipient_and_message = match.group(3)
         try:
             (target_name, send_body) = split_recipient_and_message(recipient_and_message)
         except ValueError as e:
@@ -111,17 +111,18 @@ class Messenger(Module):
         )
         self.database.commit()
 
-        if lower_target_name == lower_sender_name:
-            self.connector.send_message(
-                ("[noparse]{0}[/noparse]: Talking to ourselves? Well, no skin off my back. I\u2019ll deliver your "
-                 "message to you right away. ;)").format(message.user_name)
-            )
-        else:
-            sent_template = (
-                "[noparse]{1}[/noparse]: Aye-aye! I\u2019ll deliver your message to [i][noparse]{0}[/noparse][/i] next "
-                "time I see \u2019em!"
-            )
-            self.connector.send_message(sent_template.format(user_info[1], message.user_name))
+        if match.group(1) == "":
+            if lower_target_name == lower_sender_name:
+                self.connector.send_message(
+                    ("[noparse]{0}[/noparse]: Talking to ourselves? Well, no skin off my back. I\u2019ll deliver your "
+                     "message to you right away. ;)").format(message.user_name)
+                )
+            else:
+                sent_template = (
+                    "[noparse]{1}[/noparse]: Aye-aye! I\u2019ll deliver your message to [i][noparse]{0}[/noparse][/i] next "
+                    "time I see \u2019em!"
+                )
+                self.connector.send_message(sent_template.format(user_info[1], message.user_name))
 
     def format_timestamp(self, message_id, the_timestamp):
         timestamp_format = "[{0}]"
