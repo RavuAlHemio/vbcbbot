@@ -62,13 +62,13 @@ class Echelon(Module):
                 if the_count is None:
                     self.connector.send_message(
                         "Agent {0}: Subject {1} may or may not have caused any incident.".format(
-                            message.user_name, stats_match.group(1)
+                            message.user_name, stats_match.group(2)
                         )
                     )
                 else:
                     self.connector.send_message(
                         "Agent {0}: Subject {1} may or may not have caused {2} {3}.".format(
-                            message.user_name, stats_match.group(1), the_count,
+                            message.user_name, stats_match.group(2), the_count,
                             "incident" if the_count == 1 else "incidents"
                         )
                     )
