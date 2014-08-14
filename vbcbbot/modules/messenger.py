@@ -186,9 +186,9 @@ class Messenger(Module):
 
         # output them, if any
         if len(messages) > 0:
-            self.connector.send_message(
-                "Replaying {0} messages for [noparse]{1}[/noparse]!".format(len(messages), message.user_name)
-            )
+            self.connector.send_message("Replaying {0} {2} for [noparse]{1}[/noparse]!".format(
+                    len(messages), message.user_name, "messages" if len(messages) != 1 else "message"
+            ))
             for (the_timestamp, the_sender, the_body, the_message_id) in messages:
                 logger.debug("delivering {0}'s retained message {1} to {2} as part of a chunk".format(
                     repr(the_sender), repr(the_body), repr(message.user_name)
@@ -210,8 +210,8 @@ class Messenger(Module):
                     message.user_name
                 ))
         else:
-            self.connector.send_message("[noparse]{0}[/noparse] has {1} messages left to deliver!".format(
-                message.user_name, remaining
+            self.connector.send_message("[noparse]{0}[/noparse] has {1} {2} left to deliver!".format(
+                message.user_name, remaining, "messages" if remaining != 1 else "message"
             ))
 
     def process_message(self, message, modified=False, initial_salvo=False, user_banned=False):
