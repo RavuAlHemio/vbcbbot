@@ -25,6 +25,11 @@ class Thanks(Module):
         Called by the communicator when a new message has been received.
         :type message: vbcbbot.chatbox_connector.ChatboxMessage
         """
+
+        # ignore the bot's messages
+        if message.user_name == self.connector.username:
+            return
+
         # parse and strip
         body = message.decompiled_body().strip()
 

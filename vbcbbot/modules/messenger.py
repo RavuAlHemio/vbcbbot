@@ -219,7 +219,7 @@ class Messenger(Module):
         Called by the communicator when a new or updated message has been received.
         :type message: vbcbbot.chatbox_connector.ChatboxMessage
         """
-        if modified or initial_salvo:
+        if modified or initial_salvo or message.user_name == self.connector.username:
             return
 
         lower_sender_name = message.user_name.lower()
