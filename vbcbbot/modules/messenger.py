@@ -275,6 +275,7 @@ class Messenger(Module):
 
         if len(messages) == 0:
             # meh
+            # (pass instead of return to delete the skipped "responded directly to" messages)
             pass
         elif len(messages) == 1:
             # one message
@@ -313,7 +314,7 @@ class Messenger(Module):
             cursor.close()
             # non-retained messages will be deleted below
         else:
-            # multiple messages
+            # multiple but not too many messages
             self.connector.send_message("{0} new messages for [noparse]{1}[/noparse]{2}!".format(
                 len(messages),
                 message.user_name,
