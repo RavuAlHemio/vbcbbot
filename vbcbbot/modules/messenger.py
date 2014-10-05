@@ -251,7 +251,8 @@ class Messenger(Module):
         for bin_row in cursor:
             # skip messages that the user is directly responding to
             # (0: the !msg call, 1: the confirmation, 2: the response)
-            if bin_row[3] + 2 < message.id:
+            delta = message.id - bin_row[3]
+            if delta < 1 or delta > 2:
                 messages.append((bin_row[0], bin_row[1], bin_row[2], bin_row[3]))
             else:
                 logger.debug("dropping {0}'s message #{1} for {2} ({3}) due to proximity to #{4}".format(
