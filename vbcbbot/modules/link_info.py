@@ -161,21 +161,7 @@ class LinkInfo(Module):
         # don't do anything
         return
 
-    def message_received(self, message):
-        """
-        Called by the communicator when a new message has been received.
-        :type message: vbcbbot.chatbox_connector.ChatboxMessage
-        """
-
-        # respond?
-        body = message.decompiled_body().strip()
-        if not body.startswith("!link "):
-            return
-
-        # find all the links
-        dom = message.decompiled_body_dom()
-        links = find_links(dom)
-
+    def post_link_info(self, links):
         # fetch their info
         links_infos = ((link, obtain_link_info(link)) for link in links)
 
@@ -189,6 +175,31 @@ class LinkInfo(Module):
             outgoing = "[url]{0}[/url]: [noparse]{1}[/noparse]".format(link, link_info)
             self.connector.send_message(outgoing)
 
+    def message_received(self, message):
+        """
+        Called by the communicator when a new message has been received.
+        :type message: vbcbbot.chatbox_connector.ChatboxMessage
+        """
+        if body == "!lastlink":
+            if self.last_link is None:
+                self.connector.send_message("No last link!")
+            else:
+                self.post_link_info([self.last_link])
+            return
+
+        # find all the links
+        dom = message.decompiled_body_dom()
+        links = find_links(dom)
+
+        # store the new "last link"
+        if len(links) > 0:
+            self.last_link = links[-1]
+
+        # respond?
+        body = message.decompiled_body().strip()
+        if body.startswith("!link "):
+            self.post_link_info(message, links)
+
     def __init__(self, connector, config_section):
         """
         Create a new messaging responder.
@@ -199,3 +210,5 @@ class LinkInfo(Module):
 
         if config_section is None:
             config_section = {}
+
+        self.last_link = None
