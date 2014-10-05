@@ -180,6 +180,7 @@ class LinkInfo(Module):
         Called by the communicator when a new message has been received.
         :type message: vbcbbot.chatbox_connector.ChatboxMessage
         """
+        body = message.decompiled_body().strip()
         if body == "!lastlink":
             if self.last_link is None:
                 self.connector.send_message("No last link!")
@@ -196,7 +197,6 @@ class LinkInfo(Module):
             self.last_link = links[-1]
 
         # respond?
-        body = message.decompiled_body().strip()
         if body.startswith("!link "):
             self.post_link_info(message, links)
 
