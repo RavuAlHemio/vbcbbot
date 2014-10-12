@@ -34,6 +34,16 @@ def find_links(node_list):
     return ret
 
 
+def find_icons(node_list):
+    ret = []
+    for node in node_list
+        if node.is_element() and node.name == 'icon':
+            ret.append("".join(str(child) for child in node.children))
+        if node.has_children():
+            ret += find_icons(node.children)
+    return ret
+
+
 def obtain_image_info(url, text):
     try:
         # initialize cookies
@@ -170,7 +180,7 @@ class LinkInfo(Module):
             previous = None
             while link_info != previous:
                 previous = link_info
-                link_info.replace("[noparse]", "").replace("[/noparse]", "")
+                link_info = link_info.replace("[noparse]", "").replace("[/noparse]", "")
 
             outgoing = "[url]{0}[/url]: [noparse]{1}[/noparse]".format(link, link_info)
             self.connector.send_message(outgoing)
@@ -187,18 +197,29 @@ class LinkInfo(Module):
             else:
                 self.post_link_info([self.last_link])
             return
+        elif body == "!lasticon":
+            if self.last_icon is None:
+                self.connector.send_message("No last icon!")
+            else:
+                self.post_link_info([self.last_icon])
+            return
 
         # find all the links
         dom = message.decompiled_body_dom()
         links = find_links(dom)
+        icons = find_icons(dom)
 
         # store the new "last link"
         if len(links) > 0:
             self.last_link = links[-1]
+        if len(icons) > 0:
+            self.last_icon = icons[-1]
 
         # respond?
         if body.startswith("!link "):
             self.post_link_info(message, links)
+        elif body.startswith("!icon "):
+            self.post_link_info(message, icons)
 
     def __init__(self, connector, config_section):
         """
@@ -212,3 +233,4 @@ class LinkInfo(Module):
             config_section = {}
 
         self.last_link = None
+        self.last_icon = None
