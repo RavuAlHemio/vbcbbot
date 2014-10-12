@@ -31,6 +31,8 @@ def html_escape(s, escape_quotes=True, escape_apostrophes=False):
             ret += "&apos;"
         elif ord(c) > 0x7E:
             ret += "&#{0};".format(ord(c))
+        elif c == "\n":
+            ret += "<br/>\n"
         else:
             ret += c
     return ret
