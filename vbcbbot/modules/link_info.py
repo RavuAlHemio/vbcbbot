@@ -36,7 +36,7 @@ def find_links(node_list):
 
 def find_icons(node_list):
     ret = []
-    for node in node_list
+    for node in node_list:
         if node.is_element() and node.name == 'icon':
             ret.append("".join(str(child) for child in node.children))
         if node.has_children():
