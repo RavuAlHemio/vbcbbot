@@ -6,13 +6,13 @@ import logging
 import re
 import sqlite3
 import time
-import unicodedata
 
 __author__ = 'ondra'
 
 logger = logging.getLogger("vbcbbot.modules.messenger")
 msg_trigger = re.compile("^!(s?)(msg|mail) (.+)$")
 deliver_trigger = re.compile("^!(delivermsg) ([0-9]+)$")
+ignore_trigger = re.compile("^!(ignore|unignore) (.+)$")
 
 
 def split_recipient_and_message(text):
@@ -45,10 +45,6 @@ def split_recipient_and_message(text):
 
 class Messenger(Module):
     """Delivers messages to users when they return."""
-
-    def message_received_on_new_connection(self, message):
-        # don't do anything
-        return
 
     def potential_message_send(self, message, body, lower_sender_name):
         match = msg_trigger.match(body)
@@ -94,6 +90,32 @@ class Messenger(Module):
             self.connector.send_message(
                 "[noparse]{1}[/noparse]: Sorry, I don\u2019t know \u201c{0}\u201d.{2}".format(
                     target_name, message.user_name, colon_info
+                )
+            )
+            return
+
+        # check ignore list
+        cursor = self.database.cursor()
+        cursor.execute(
+            "SELECT COUNT(*) FROM ignore_list WHERE sender_folded=? AND recipient_folded=?",
+            (lower_sender_name, lower_target_name)
+        )
+        ignore_count = None
+        for row in cursor:
+            ignore_count = row[0]
+        cursor.close()
+
+        if ignore_count != 0:
+            logger.debug("{0} wants to send a message {1} to {2}, but the recipient is ignoring the sender".format(
+                repr(message.user_name), repr(send_body), repr(target_name)
+            ))
+            self.connector.send_message(
+                (
+                    "[noparse]{0}[/noparse]: Can\u2019t send a message to [i][noparse]{1}[/noparse][/i]\u2014"
+                    "they\u2019re ignoring you."
+                ).format(
+                    message.user_name,
+                    user_info[1]
                 )
             )
             return
@@ -214,6 +236,63 @@ class Messenger(Module):
                 message.user_name, remaining, "messages" if remaining != 1 else "message"
             ))
 
+    def potential_ignore_list_request(self, message, body, lower_sender_name):
+        match = ignore_trigger.match(body)
+        if match is None:
+            return
+
+        command = match.group(1)
+        block_sender = match.group(2).strip()
+        block_sender_lower = block_sender.lower()
+
+        cursor = self.database.cursor()
+        cursor.execute(
+            "SELECT COUNT(*) FROM ignore_list WHERE recipient_folded=? AND sender_folded=?",
+            (lower_sender_name, block_sender_lower)
+        )
+        count = None
+        for row in cursor:
+            count = row[0]
+
+        if command == "ignore":
+            if count != 0:
+                self.connector.send_message(
+                    "[noparse]{0}[/noparse]: You are already ignoring [i][noparse]{1}[/noparse][/i].".format(
+                        message.user_name, block_sender
+                    )
+                )
+                return
+            cursor.execute(
+                "INSERT INTO ignore_list (recipient_folded, sender_folded) VALUES (?, ?)",
+                (lower_sender_name, block_sender_lower)
+            )
+            self.database.commit()
+            cursor.close()
+            self.connector.send_message(
+                "[noparse]{0}[/noparse]: You are now ignoring [i][noparse]{1}[/noparse][/i].".format(
+                    message.user_name, block_sender
+                )
+            )
+        elif command == "unignore":
+            if count == 0:
+                self.connector.send_message(
+                    "[noparse]{0}[/noparse]: You are not ignoring [i][noparse]{1}[/noparse][/i].".format(
+                        message.user_name, block_sender
+                    )
+                )
+                # don't return here, just to make sure
+            cursor.execute(
+                "DELETE FROM ignore_list WHERE recipient_folded=? AND sender_folded=?",
+                (lower_sender_name, block_sender_lower)
+            )
+            self.database.commit()
+            cursor.close()
+            self.connector.send_message(
+                "[noparse]{0}[/noparse]: You are not ignoring [i][noparse]{1}[/noparse][/i] anymore.".format(
+                    message.user_name, block_sender
+                )
+            )
+
     def process_message(self, message, modified=False, initial_salvo=False, user_banned=False):
         """
         Called by the communicator when a new or updated message has been received.
@@ -233,6 +312,9 @@ class Messenger(Module):
 
             # process potential deliver request
             self.potential_deliver_request(message, body, lower_sender_name)
+
+            # process potential ignore/unignore request
+            self.potential_ignore_list_request(message, body, lower_sender_name)
 
         # even banned users get messages; they just can't respond to them
 
@@ -380,6 +462,13 @@ class Messenger(Module):
             sender_original TEXT NOT NULL,
             recipient_folded TEXT NOT NULL,
             body TEXT NOT NULL
+        )
+        """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS ignore_list (
+            sender_folded TEXT NOT NULL,
+            recipient_folded TEXT NOT NULL,
+            PRIMARY KEY (sender_folded, recipient_folded)
         )
         """)
         cursor.execute("""
