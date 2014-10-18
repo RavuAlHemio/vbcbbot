@@ -276,12 +276,14 @@ class Messenger(Module):
                 )
             )
         elif command == "unignore":
+            ignoring = True
             if count == 0:
                 self.connector.send_message(
                     "[noparse]{0}[/noparse]: You are not ignoring [i][noparse]{1}[/noparse][/i].".format(
                         message.user_name, block_sender
                     )
                 )
+                ignoring = False
                 # don't return here, just to make sure
             cursor.execute(
                 "DELETE FROM ignore_list WHERE recipient_folded=? AND sender_folded=?",
@@ -290,11 +292,12 @@ class Messenger(Module):
             self.database.commit()
             cursor.close()
             logger.debug("{0} is not ignoring {1} anymore".format(message.user_name, block_sender))
-            self.connector.send_message(
-                "[noparse]{0}[/noparse]: You are not ignoring [i][noparse]{1}[/noparse][/i] anymore.".format(
-                    message.user_name, block_sender
+            if not ignoring:
+                self.connector.send_message(
+                    "[noparse]{0}[/noparse]: You are not ignoring [i][noparse]{1}[/noparse][/i] anymore.".format(
+                        message.user_name, block_sender
+                    )
                 )
-            )
 
     def process_message(self, message, modified=False, initial_salvo=False, user_banned=False):
         """
