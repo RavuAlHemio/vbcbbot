@@ -12,7 +12,7 @@ __author__ = 'ondra'
 logger = logging.getLogger("vbcbbot.modules.messenger")
 msg_trigger = re.compile("^!(s?)(msg|mail) (.+)$")
 deliver_trigger = re.compile("^!(delivermsg) ([0-9]+)$")
-ignore_trigger = re.compile("^!(ignore|unignore) (.+)$")
+ignore_trigger = re.compile("^!msg(ignore|unignore) (.+)$")
 
 
 def split_recipient_and_message(text):
