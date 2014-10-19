@@ -13,6 +13,7 @@ logger = logging.getLogger("vbcbbot.modules.messenger")
 msg_trigger = re.compile("^!(s?)(msg|mail) (.+)$")
 deliver_trigger = re.compile("^!(delivermsg) ([0-9]+)$")
 ignore_trigger = re.compile("^!msg(ignore|unignore) (.+)$")
+replay_trigger = re.compile("^!replaymsg ([0-9]+)$")
 
 
 def split_recipient_and_message(text):
@@ -236,6 +237,71 @@ class Messenger(Module):
                 message.user_name, remaining, "messages" if remaining != 1 else "message"
             ))
 
+    def potential_replay_request(self, message, body, lower_sender_name):
+        match = replay_trigger.match(body)
+        if match is None:
+            return
+
+        replay_count = int(match.group(1))
+        if replay_count > self.max_messages_to_replay:
+            self.connector.send_message(
+                "[noparse]{0}[/noparse]: I only remember a backlog of up to {1} messages.".format(
+                    message.user_name, self.max_messages_to_replay
+                )
+            )
+            return
+
+        cursor = self.database.cursor()
+        cursor.execute(
+            "SELECT timestamp, sender_original, body, message_id FROM replayable_messages WHERE recipient_folded=? "
+            "ORDER BY message_id DESC LIMIT ?",
+            (lower_sender_name, replay_count)
+        )
+        messages = []
+        for row in cursor:
+            messages.append((row[0], row[1], row[2], row[3]))
+        cursor.close()
+
+        # return to normal order
+        messages.reverse()
+
+        if len(messages) == 0:
+            self.connector.send_message(
+                "[noparse]{0}[/noparse]: You have no messages to replay!".format(
+                    message.user_name
+                )
+            )
+            return
+        elif len(messages) == 1:
+            (the_timestamp, the_sender, the_body, the_message_id) = messages[0]
+            logger.debug("replaying a message for {0}".format(
+                repr(message.user_name)
+            ))
+            self.connector.send_message(
+                "Replaying message for [noparse]{0}[/noparse]! {1} <[noparse]{2}[/noparse]> {3}".format(
+                    message.user_name,
+                    self.format_timestamp(the_message_id, the_timestamp),
+                    the_sender,
+                    the_body
+                )
+            )
+        else:
+            self.connector.send_message(
+                "[noparse]{0}[/noparse]: Replaying {1} {2}!".format(
+                    message.user_name, len(messages), ("messages" if len(messages) != 1 else "message")
+                )
+            )
+            logger.debug("replaying {0} messages for {1}".format(
+                len(messages), repr(message.user_name)
+            ))
+            for (the_timestamp, the_sender, the_body, the_message_id) in messages:
+                self.connector.send_message("{0} <[noparse]{1}[/noparse]> {2}".format(
+                    self.format_timestamp(the_message_id, the_timestamp),
+                    the_sender,
+                    the_body
+                ))
+            self.connector.send_message("[noparse]{0}[/noparse]: Take care!".format(message.user_name))
+
     def potential_ignore_list_request(self, message, body, lower_sender_name):
         match = ignore_trigger.match(body)
         if match is None:
@@ -420,8 +486,34 @@ class Messenger(Module):
                 ))
             self.connector.send_message("[noparse]{0}[/noparse]: Have a nice day!".format(message.user_name))
 
-        # delete those messages
+        # place them on the repeat heap
         cursor = self.database.cursor()
+        cursor.execute(
+            "INSERT INTO replayable_messages SELECT * FROM messages WHERE recipient_folded=? "
+            "ORDER BY message_id ASC",
+            (lower_sender_name,)
+        )
+        self.database.commit()
+
+        # purge the repeat heap if necessary
+        cursor.execute("SELECT COUNT(*) FROM replayable_messages WHERE recipient_folded=?", (lower_sender_name,))
+        count = 0
+        for row in cursor:
+            count = row[0]
+        if count > self.max_messages_to_replay:
+            cursor.execute(
+                "SELECT message_id FROM replayable_messages WHERE recipient_folded=? ORDER BY message_id ASC",
+                (lower_sender_name,)
+            )
+            replayable_message_ids = []
+            for row in cursor:
+                replayable_message_ids.append(row[0])
+            # lst[:-10] =^= everything but the last 10 elements
+            for replayable_message_id_to_purge in replayable_message_ids[:-self.max_messages_to_replay]:
+                cursor.execute("DELETE FROM replayable_messages WHERE message_id=?", (replayable_message_id_to_purge,))
+            self.database.commit()
+
+        # delete delivered/skipped messages
         cursor.execute("DELETE FROM messages WHERE recipient_folded=?", (lower_sender_name,))
         self.database.commit()
         cursor.close()
@@ -451,6 +543,10 @@ class Messenger(Module):
         if "timestamp link" in config_section:
             self.timestamp_link = config_section["timestamp link"]
 
+        self.max_messages_to_replay = 10
+        if "max messages to replay" in config_section:
+            self.max_messages_to_replay = int(config_section["max messages to replay"])
+
         cursor = self.database.cursor()
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS messages (
@@ -463,6 +559,15 @@ class Messenger(Module):
         """)
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS messages_on_retainer (
+            message_id INT NOT NULL PRIMARY KEY,
+            timestamp INT NOT NULL,
+            sender_original TEXT NOT NULL,
+            recipient_folded TEXT NOT NULL,
+            body TEXT NOT NULL
+        )
+        """)
+        cursor.execute("""
+        CREATE TABLE IF MOT EXISTS replayable_messages (
             message_id INT NOT NULL PRIMARY KEY,
             timestamp INT NOT NULL,
             sender_original TEXT NOT NULL,
@@ -484,5 +589,9 @@ class Messenger(Module):
         cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_messages_on_retainer_recipient_timestamp
         ON messages_on_retainer (recipient_folded, message_id ASC)
+        """)
+        cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_replayable_messages_recipient_timestamp
+        ON replayable_messages (recipient_folded, message_id ASC)
         """)
         self.database.commit()
