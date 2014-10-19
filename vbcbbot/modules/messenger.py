@@ -388,6 +388,9 @@ class Messenger(Module):
             # process potential ignore/unignore request
             self.potential_ignore_list_request(message, body, lower_sender_name)
 
+            # process potential replay request
+            self.potential_replay_request(message, body, lower_sender_name)
+
         # even banned users get messages; they just can't respond to them
 
         if self.connector.should_stfu():
