@@ -175,7 +175,7 @@ class Messenger(Module):
         cursor = self.database.cursor()
         cursor.execute(
             "SELECT timestamp, sender_original, body, message_id FROM messages_on_retainer WHERE recipient_folded=? "
-            "ORDER BY timestamp ASC LIMIT ?",
+            "ORDER BY message_id ASC LIMIT ?",
             (lower_sender_name, fetch_count)
         )
         messages = []
@@ -332,7 +332,7 @@ class Messenger(Module):
         cursor = self.database.cursor()
         cursor.execute(
             "SELECT timestamp, sender_original, body, message_id FROM messages "
-            "WHERE recipient_folded=? ORDER BY timestamp ASC",
+            "WHERE recipient_folded=? ORDER BY message_id ASC",
             (lower_sender_name,)
         )
         messages = []
@@ -396,7 +396,7 @@ class Messenger(Module):
             cursor = self.database.cursor()
             cursor.execute(
                 "INSERT INTO messages_on_retainer SELECT * FROM messages WHERE recipient_folded=? "
-                "ORDER BY timestamp ASC",
+                "ORDER BY message_id ASC",
                 (lower_sender_name,)
             )
             self.database.commit()
@@ -479,10 +479,10 @@ class Messenger(Module):
         """)
         cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_messages_recipient_timestamp
-        ON messages (recipient_folded, timestamp ASC)
+        ON messages (recipient_folded, message_id ASC)
         """)
         cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_messages_on_retainer_recipient_timestamp
-        ON messages_on_retainer (recipient_folded, timestamp ASC)
+        ON messages_on_retainer (recipient_folded, message_id ASC)
         """)
         self.database.commit()
