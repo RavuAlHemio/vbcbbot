@@ -567,7 +567,7 @@ class Messenger(Module):
         )
         """)
         cursor.execute("""
-        CREATE TABLE IF MOT EXISTS replayable_messages (
+        CREATE TABLE IF NOT EXISTS replayable_messages (
             message_id INT NOT NULL PRIMARY KEY,
             timestamp INT NOT NULL,
             sender_original TEXT NOT NULL,
