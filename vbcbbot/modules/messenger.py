@@ -292,7 +292,7 @@ class Messenger(Module):
             self.database.commit()
             cursor.close()
             logger.debug("{0} is not ignoring {1} anymore".format(message.user_name, block_sender))
-            if not ignoring:
+            if ignoring:
                 self.connector.send_message(
                     "[noparse]{0}[/noparse]: You are not ignoring [i][noparse]{1}[/noparse][/i] anymore.".format(
                         message.user_name, block_sender
