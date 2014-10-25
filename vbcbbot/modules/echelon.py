@@ -86,7 +86,7 @@ class Echelon(Module):
         cursor = self.database.cursor()
         cursor.execute(
             "INSERT INTO triggers (target_name_lower, regex, spymaster_name) VALUES (?, ?, ?)",
-            (username, regex, message.user_name)
+            (username.lower(), regex, message.user_name)
         )
         self.database.commit()
 
