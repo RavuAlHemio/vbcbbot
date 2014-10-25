@@ -151,7 +151,7 @@ class Messenger(Module):
         timestamp_format = "[{0}]"
         timestamp_link_url = ""
         if self.timestamp_link is not None:
-            timestamp_format = "[url={1}][{0}][/url]"
+            timestamp_format = "[{0}] ([url={1}]archive[/url])"
             timestamp_link_url = self.timestamp_link.format(message_id)
         return timestamp_format.format(
             time.strftime("%Y-%m-%d %H:%M", time.localtime(the_timestamp)),

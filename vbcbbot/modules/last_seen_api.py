@@ -116,7 +116,7 @@ class LastSeenApi(Module):
                 else:
                     timestamp_output = t
                     if self.archive_link_template is not None and mid is not None and epoch is not None:
-                        timestamp_output = "[url={0}]{1}[/url]".format(
+                        timestamp_output = "{1} ([url={0}]\u2192 archive[/url])".format(
                             self.archive_link_template.format(msgid=mid, epoch=epoch),
                             t
                         )
@@ -140,7 +140,7 @@ class LastSeenApi(Module):
                     else:
                         text = t
                         if self.archive_link_template is not None and mid is not None and epoch is not None:
-                            text = "[url={0}]{1}[/url]".format(
+                            text = "{1} ([url={0}]\u2192[/url])".format(
                                 self.archive_link_template.format(msgid=mid, epoch=epoch),
                                 t
                             )
