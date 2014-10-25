@@ -107,6 +107,7 @@ class Echelon(Module):
 
         if not user_banned:
             self.potential_stats(message, body)
+            self.potential_spy(message, body)
 
         # spy on messages from banned users too
 
