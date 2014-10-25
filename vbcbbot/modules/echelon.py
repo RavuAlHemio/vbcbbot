@@ -8,7 +8,7 @@ import sqlite3
 __author__ = 'ondra'
 
 logger = logging.getLogger("vbcbbot.modules.echelon")
-#spy_trigger = re.compile("^!(spy) ([^;]+)[;](.+)$")
+spy_trigger = re.compile("^!(echelon trigger) ([^;]+)[;](.+)$")
 stats_trigger = re.compile("^!(echelon incidents) (.+)$")
 
 
@@ -32,6 +32,66 @@ class Trigger:
 class Echelon(Module):
     """Not a part of the NSA's ECHELON program."""
 
+    def potential_stats(self, message, body):
+        stats_match = stats_trigger.match(body)
+        if stats_match is None:
+            return
+
+        cursor = self.database.cursor()
+        cursor.execute(
+            "SELECT COUNT(*) FROM incidents WHERE trigger_id IN ("
+            "SELECT trigger_id FROM triggers WHERE target_name_lower=?"
+            ")",
+            (stats_match.group(2).lower(),)
+        )
+        the_count = None
+        for row in cursor:
+            the_count = row[0]
+
+        salutation = "Spymaster" if message.user_name in self.spymasters else "Agent"
+
+        if the_count is None:
+            self.connector.send_message(
+                "{2} {0}: Subject {1} may or may not have caused any incident.".format(
+                    message.user_name, stats_match.group(2), salutation
+                )
+            )
+        else:
+            self.connector.send_message(
+                "{4} {0}: Subject {1} may or may not have caused {2} {3}.".format(
+                    message.user_name,
+                    stats_match.group(2),
+                    the_count,
+                    "incident" if the_count == 1 else "incidents",
+                    salutation
+                )
+            )
+
+    def potential_spy(self, message, body):
+        spy_match = spy_trigger.match(body)
+        if spy_match is None:
+            return
+
+        if message.user_name not in self.spymasters:
+            self.connector.send_message(
+                "Agent {0}: Your rank is insufficient for this operation.".format(
+                    message.user_name
+                )
+            )
+            return
+
+        username = spy_match.group(2).strip()
+        regex = spy_match.group(3).strip()
+
+        cursor = self.database.cursor()
+        cursor.execute(
+            "INSERT INTO triggers (target_name_lower, regex, spymaster_name) VALUES (?, ?, ?)",
+            (username, regex, message.user_name)
+        )
+        self.database.commit()
+
+        self.connector.send_message("Spymaster {0}: Done.".format(message.user_name))
+
     def process_message(self, message, modified=False, initial_salvo=False, user_banned=False):
         """
         Called by the communicator when a new or updated message has been received.
@@ -46,32 +106,7 @@ class Echelon(Module):
         body = remove_control_characters_and_strip(message.decompiled_body())
 
         if not user_banned:
-            stats_match = stats_trigger.match(body)
-            if stats_match:
-                cursor = self.database.cursor()
-                cursor.execute(
-                    "SELECT COUNT(*) FROM incidents WHERE trigger_id IN ("
-                    "SELECT trigger_id FROM triggers WHERE user_name_lower=?"
-                    ")",
-                    (stats_match.group(2).lower(),)
-                )
-                the_count = None
-                for row in cursor:
-                    the_count = row[0]
-
-                if the_count is None:
-                    self.connector.send_message(
-                        "Agent {0}: Subject {1} may or may not have caused any incident.".format(
-                            message.user_name, stats_match.group(2)
-                        )
-                    )
-                else:
-                    self.connector.send_message(
-                        "Agent {0}: Subject {1} may or may not have caused {2} {3}.".format(
-                            message.user_name, stats_match.group(2), the_count,
-                            "incident" if the_count == 1 else "incidents"
-                        )
-                    )
+            self.potential_stats(message, body)
 
         # spy on messages from banned users too
 
@@ -107,12 +142,21 @@ class Echelon(Module):
         else:
             self.database = sqlite3.connect(":memory:", check_same_thread=False)
 
+        self.spymasters = set()
+        if "spymasters" in config_section:
+            for line in config_section["spymasters"].split("\n"):
+                stripped_line = line.strip()
+                if len(stripped_line) == 0:
+                    continue
+                self.spymasters.add(stripped_line)
+
         cursor = self.database.cursor()
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS triggers (
             trigger_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_name_lower TEXT NOT NULL,
-            regex TEXT NOT NULL
+            target_name_lower TEXT NOT NULL,
+            regex TEXT NOT NULL,
+            spymaster_name TEXT NOT NULL
         )
         """)
         cursor.execute("""
@@ -123,11 +167,11 @@ class Echelon(Module):
             timestamp INTEGER NOT NULL
         )
         """)
-        cursor.execute("CREATE INDEX IF NOT EXISTS index_user_name_lower ON triggers (user_name_lower)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS index_target_name_lower ON triggers (target_name_lower)")
         self.database.commit()
 
         self.lowercase_user_names_to_triggers = {}
-        cursor.execute("SELECT trigger_id, user_name_lower, regex FROM triggers")
+        cursor.execute("SELECT trigger_id, target_name_lower, regex FROM triggers")
         for row in cursor:
             trig = Trigger(row[0], row[1], row[2])
             if trig.user_name_lower not in self.lowercase_user_names_to_triggers:
