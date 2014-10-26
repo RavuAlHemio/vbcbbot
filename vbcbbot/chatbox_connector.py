@@ -1,5 +1,7 @@
 from vbcbbot.html_decompiler import HtmlDecompiler
 
+from datetime import datetime
+from dateutil.tz import tzlocal
 import http.client as hcl
 import http.cookiejar as cj
 import io
@@ -22,6 +24,7 @@ logger = logging.getLogger("vbcbbot.chatbox_connector")
 url_safe_characters = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.")
 timestamp_pattern = re.compile("[[]([0-9][0-9]-[0-9][0-9]-[0-9][0-9], [0-9][0-9]:[0-9][0-9])[]]")
 xml_char_escape_pattern = re.compile("[&][#]([0-9]+|x[0-9a-fA-F]+)[;]")
+dst_setting_pattern = re.compile("var tzOffset = ([0-9]+) [+] ([0-9]+)[;]")
 
 
 def fish_out_id(element, url_piece):
@@ -294,6 +297,7 @@ class ChatboxConnector:
         # assume a good default for these
         self.server_encoding = "windows-1252"
         self.time_between_reads = 5
+        self.dst_update_minute = 3
         self.message_id_piece = "misc.php?ccbloc="
         self.user_id_piece = "member.php?u="
 
@@ -304,6 +308,7 @@ class ChatboxConnector:
         self.messages_url = up.urljoin(self.base_url, "misc.php?show=ccbmessages")
         self.smilies_url = up.urljoin(self.base_url, "misc.php?do=showsmilies")
         self.ajax_url = up.urljoin(self.base_url, "ajax.php")
+        self.dst_url = up.urljoin(self.base_url, "profile.php?do=dst")
 
         # prepare the cookie jar, its lock, and the URL opener
         self.cookie_jar = cj.CookieJar()
@@ -327,6 +332,7 @@ class ChatboxConnector:
         self.stop_reading = False
         self.stfu_deadline = None
         """:type: int|None"""
+        self.last_dst_update_hour_utc = -1
 
     @property
     def smiley_codes_to_urls(self):
@@ -376,6 +382,8 @@ class ChatboxConnector:
 
         # update smilies
         self.update_smilies()
+
+        logger.info("ready")
 
     def fetch_security_token(self):
         """
@@ -747,6 +755,10 @@ class ChatboxConnector:
                 penalty_coefficient = 1
             except:
                 logger.exception("exception fetching messages; penalty coefficient is {0}".format(penalty_coefficient))
+            try:
+                self.potential_dst_fix()
+            except:
+                logger.exception("potential DST fixing failed")
             penalty_coefficient += 1
             time.sleep(self.time_between_reads * penalty_coefficient)
 
@@ -791,6 +803,75 @@ class ChatboxConnector:
         for (code, url) in self.custom_smiley_codes_to_urls.items():
             ret = ret.replace(code, "[icon]{0}[/icon]".format(url))
         return ret
+
+    def potential_dst_fix(self):
+        """
+        Update Daylight Savings Time settings if necessary (to make the forum shut up).
+        """
+        utc_now = datetime.utcnow()
+        if self.last_dst_update_hour_utc == utc_now.hour:
+            # we already checked this hour
+            return
+
+        if utc_now.minute < self.dst_update_minute:
+            # too early to check
+            return
+
+        # update hour to this one
+        self.last_dst_update_hour_utc = utc_now.hour
+
+        logger.debug("checking for DST update")
+
+        # fetch a (computationally cheap) page from the server
+        with self.cookie_jar_lid:
+            cheap_response = self.url_opener.open(self.cheap_page_url, timeout=self.timeout)
+            cheap_page_data = cheap_response.read()
+            cheap_page_string = cheap_page_data.decode(self.server_encoding)
+
+        # load it into lxml
+        cheap_page = etree.HTML(cheap_page_string)
+        dst_form = cheap_page.find(".//form[@name='dstform']")
+        if dst_form is None:
+            return
+
+        logger.info("performing DST update")
+
+        # find the forum's DST settings (they're hidden in JavaScript)
+        first, second = None, None
+        for match in dst_setting_pattern.finditer(cheap_page_string):
+            first = int(match.group(1))
+            second = int(match.group(2))
+            break
+
+        if first is None or second is None:
+            logger.error("can't perform DST update: timezone calculation not found")
+            return
+
+        forum_offset = first + second
+        local_tz = tzlocal()
+        local_delta = local_tz.utcoffset(datetime.now(local_tz))
+        local_offset = local_delta.total_seconds() // 3600
+
+        if (forum_offset - local_offset) not in (1, -1):
+            # DST hasn't changed
+            logger.info("DST already correct")
+            return
+
+        # fish out all the necessary fields
+        post_fields = {
+            "s": dst_form.find(".//input[@name='s']").attrib['value'],
+            "securitytoken": dst_form.find(".//input[@name='securitytoken']").attrib['value'],
+            "do": "dst"
+        }
+        post_data = up.urlencode(post_fields, encoding="utf-8").encode("us-ascii")
+
+        # call the update page
+        with self.cookie_jar_lid:
+            dst_response = self.url_opener.open(self.dst_url, data=post_data, timeout=self.timeout)
+            dst_response.read()
+
+        logger.info("DST updated")
+
 
 if __name__ == '__main__':
     def message_received(message):
