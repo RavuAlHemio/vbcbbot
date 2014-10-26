@@ -374,7 +374,7 @@ class HttpInterface(Module):
         if "backlog" in config_section:
             self.backlog = int(config_section["backlog"])
 
-        self.allowed_files = set()
+        self.allowed_files = {"http_static/style.css"}
         if "allowed files" in config_section:
             for f in config_section["allowed files"].split():
                 self.allowed_files.add(f.strip())
