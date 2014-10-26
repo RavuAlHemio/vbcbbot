@@ -5,58 +5,7 @@
 <title>%%NICKNAME%% &ndash; Chatbox</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="stylesheet" type="text/css" href="/http_static/style.css" />
-<script type="text/javascript">
-function messagesFetched() {
-  document.getElementById('messages').innerHTML = this.responseText;
-  MathJax.Hub.Queue(["Typeset",MathJax.Hub], [window.setTimeout, 'fetchMessages()', 3000]);
-}
-
-function smiliesFetched() {
-  document.getElementById('smilies').innerHTML = this.responseText;
-}
-
-function hideSmilies() {
-  document.getElementById('smilies').innerHTML = '<button type="button" onclick="fetchSmilies()">Smile!</button>';
-}
-
-function smileyClicked(smiley) {
-  var re = /(^|\s)$/;
-  var val = document.getElementById('messageinput').value;
-  if (!re.test(val)) {
-    // message doesn't end with whitespace; add a space
-    val += ' ';
-  }
-  val += smiley;
-  document.getElementById('messageinput').value = val;
-}
-
-function fetchMessages() {
-  var req = new XMLHttpRequest();
-  req.onload = messagesFetched;
-  req.open('GET', '/messages', true);
-  req.send();
-}
-
-function fetchSmilies() {
-  var req = new XMLHttpRequest();
-  req.onload = smiliesFetched;
-  req.open('GET', '/smilies', true);
-  req.send();
-}
-
-function sendQuick(msg) {
-  var req = new XMLHttpRequest();
-  var body = "message=" + encodeURIComponent(msg);
-  req.open('POST', '/postmessage', true);
-  req.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-  req.setRequestHeader('Content-Length', body.length);
-  req.setRequestHeader('Connection', 'close');
-  req.send(body);
-}
-
-window.setTimeout('fetchMessages()', 500);
-window.setTimeout("document.getElementById('messageinput').focus()", 600);
-</script>
+<script src="/http_static/common.js" type="text/javascript"></script>
 <script type="text/x-mathjax-config">
   MathJax.Hub.Config({
     jax: ["input/TeX", "output/HTML-CSS"],
@@ -67,12 +16,17 @@ window.setTimeout("document.getElementById('messageinput').focus()", 600);
 </head>
 <body>
 <form action="/postmessage" method="POST">
-<p><input type="text" name="message" id="messageinput" class="textinput" /></p>
+<p><textarea name="message" id="messageinput" class="textinput"></textarea></p>
 <p><button type="submit" id="sendbutton">Send</button></p>
 </form>
 <p><span id="smilies"><button type="button" onclick="fetchSmilies()">Smile!</button></span> %%QUICKMESSAGES%%</p>
 <div id="messages">
 Fetching...
 </div>
+<script type="text/javascript">
+markTextAreaAsResizableEnterSubmit('messageinput');
+window.setTimeout('fetchMessages()', 500);
+window.setTimeout("document.getElementById('messageinput').focus()", 600);
+</script>
 </body>
 </html>

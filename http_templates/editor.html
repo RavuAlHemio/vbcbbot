@@ -5,12 +5,16 @@
 <title>Chatbox: edit message {message_id}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="stylesheet" type="text/css" href="/http_static/style.css" />
+<script src="/http_static/common.js" type="text/javascript"></script>
 </head>
 <body>
 <form action="/editmessage" method="POST">
 <input type="hidden" name="message_id" value="{message_id}" />
-<p><input type="text" name="new_body" id="messageinput" value="{body}" /></p>
+<p><textarea name="new_body" id="messageinput" class="textinput">{body}</textarea></p>
 <p><button type="submit" id="sendbutton">Edit</button></p>
+<script type="text/javascript">
+markTextAreaAsResizableEnterSubmit('messageinput');
+</script>
 </form>
 </body>
 </html>
