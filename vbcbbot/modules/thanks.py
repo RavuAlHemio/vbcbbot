@@ -137,6 +137,24 @@ class Thanks(Module):
                 )
             )
 
+        elif body == "!topthanked":
+            cursor = self.database.cursor()
+            cursor.execute(
+                "SELECT thankee_folded, SUM(thank_count) AS thank_sum FROM thanks GROUP BY thankee_folded "
+                "ORDER BY thank_sum DESC LIMIT ?",
+                (self.most_thanked_count,)
+            )
+
+            pieces = []
+            for row in cursor:
+                pieces.append("{0}: {1}".format(row[0], row[1]))
+
+            self.connector.send_message(
+                "[noparse]{0}[/noparse]: {1}.".format(
+                    message.user_name, ", ".join(pieces)
+                )
+            )
+
     def __init__(self, connector, config_section):
         """
         Create a new messaging responder.
@@ -161,6 +179,10 @@ class Thanks(Module):
             self.most_grateful_count_text = "{0}".format(self.most_grateful_count)
         if "most grateful count text" in config_section:
             self.most_grateful_count_text = config_section["most grateful count text"]
+
+        self.most_thanked_count = 5
+        if "most thanked count" in config_section:
+            self.most_thanked_count = int(config_section["most thanked count"])
 
         cursor = self.database.cursor()
         cursor.execute("""
