@@ -147,7 +147,14 @@ class Thanks(Module):
 
             pieces = []
             for row in cursor:
-                pieces.append("{0}: {1}".format(row[0], row[1]))
+                actual_username = row[0]
+                try:
+                    user_info = self.connector.get_user_id_and_nickname_for_uncased_name(row[0])
+                    if user_info is not None:
+                        actual_username = user_info[1]
+                except chatbox_connector.TransferError:
+                    pass
+                pieces.append("{0}: {1}".format(actual_username, row[1]))
 
             self.connector.send_message(
                 "[noparse]{0}[/noparse]: {1}.".format(
