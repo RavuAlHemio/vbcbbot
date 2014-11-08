@@ -40,6 +40,9 @@ class GroupPressure(Module):
             # simply append the message
             self.backlog.append((message.id, message.user_name, body))
 
+        if initial_salvo:
+            return
+
         # perform accounting
         message_senders = {}
         for (message_id, sender, message) in self.backlog:
