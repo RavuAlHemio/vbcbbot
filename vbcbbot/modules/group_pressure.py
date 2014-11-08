@@ -11,23 +11,38 @@ class GroupPressure(Module):
     on the fray!
     """
 
-    def message_received_on_new_connection(self, new_message):
-        # insert into backlog, cleaning out old messages
-        while len(self.backlog) >= self.backlog_size:
-            self.backlog.pop(0)
-        body = new_message.decompiled_body().strip()
+    def process_message(self, message, modified=False, initial_salvo=False, user_banned=False):
+        if user_banned:
+            return
+
+        body = message.decompiled_body().strip()
         if len(body) == 0:
             # nope
             return
-        self.backlog.append((new_message.user_name, body))
 
-    def message_received(self, new_message):
-        # same for the initial salvo as for subsequent messages
-        self.message_received_on_new_connection(new_message)
+        # clean out the backlog
+        if len(self.backlog) >= self.backlog_size:
+            difference = len(self.backlog) - self.backlog_size
+            self.backlog = self.backlog[difference:]
+
+        if modified:
+            # find the message in the backlog and modify it
+            new_backlog = []
+            for (message_id, message_sender, message_body) in self.backlog:
+                if message_id == message.id:
+                    # store the updated version
+                    new_backlog.append((message.id, message.user_name, body))
+                else:
+                    # port it unchanged
+                    new_backlog.append((message_id, message_sender, message_body))
+            self.backlog = new_backlog
+        else:
+            # simply append the message
+            self.backlog.append((message.id, message.user_name, body))
 
         # perform accounting
         message_senders = {}
-        for (sender, message) in self.backlog:
+        for (message_id, sender, message) in self.backlog:
             if sender == self.connector.username:
                 # this is my message -- start counting from zero, so to speak
                 message_senders[message] = set()
@@ -49,7 +64,7 @@ class GroupPressure(Module):
                 self.connector.send_message(message)
 
                 # fake this message into the backlog to prevent duplicates
-                self.backlog.append((self.connector.username, message))
+                self.backlog.append((-1, self.connector.username, message))
 
     def __init__(self, connector, config_section):
         Module.__init__(self, connector, config_section)
