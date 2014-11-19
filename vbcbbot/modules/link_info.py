@@ -217,9 +217,9 @@ class LinkInfo(Module):
 
         # respond?
         if body.startswith("!link "):
-            self.post_link_info(message, links)
+            self.post_link_info(links)
         elif body.startswith("!icon "):
-            self.post_link_info(message, icons)
+            self.post_link_info(icons)
 
     def __init__(self, connector, config_section):
         """
