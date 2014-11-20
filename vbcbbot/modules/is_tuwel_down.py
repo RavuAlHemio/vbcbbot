@@ -49,16 +49,16 @@ class IsTuwelDown(Module):
         except ValueError:
             last_update = -1
 
-        pickage = self.unknown_messages
+        pick_one = self.unknown_messages
         if status == "0":
-            pickage = self.up_messages
+            pick_one = self.up_messages
         elif status == "1":
-            pickage = self.down_messages
+            pick_one = self.down_messages
 
-        message = random.choice(pickage)
+        outgoing = random.choice(pick_one)
 
         self.connector.send_message(
-            message.format(sender=message.user_name, since=since, last_update=last_update)
+            outgoing.format(sender=message.user_name, since=since, last_update=last_update)
         )
 
     def __init__(self, connector, config_section):
