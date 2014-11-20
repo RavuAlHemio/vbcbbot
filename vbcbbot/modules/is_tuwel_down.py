@@ -3,12 +3,15 @@ from vbcbbot.utils import remove_control_characters_and_strip
 
 import logging
 import random
+import re
 import time
 import urllib.request as ur
 
 __author__ = 'ondra'
 
 logger = logging.getLogger("vbcbbot.modules.is_tuwel_down")
+
+is_down_re = re.compile("^!ist?tuwel(up|down)$")
 
 parse_messages = lambda value: [ln.strip() for ln in value.split("\n") if len(ln.strip()) > 0]
 
@@ -21,7 +24,7 @@ class IsTuwelDown(Module):
             return
 
         body = remove_control_characters_and_strip(message.decompiled_body())
-        if body not in ("!istuweldown", "!isttuweldown"):
+        if is_down_re.match(body) is None:
             return
 
         response = ur.urlopen(self.api_url)
