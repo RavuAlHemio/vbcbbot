@@ -90,6 +90,8 @@ class Echelon(Module):
         )
         self.database.commit()
 
+        self.reload_triggers()
+
         self.connector.send_message("Spymaster {0}: Done.".format(message.user_name))
 
     def process_message(self, message, modified=False, initial_salvo=False, user_banned=False):
@@ -125,6 +127,19 @@ class Echelon(Module):
                 )
                 self.database.commit()
 
+    def reload_triggers(self):
+        cursor = self.database.cursor()
+
+        self.lowercase_user_names_to_triggers = {}
+        cursor.execute("SELECT trigger_id, target_name_lower, regex FROM triggers")
+        for row in cursor:
+            trig = Trigger(row[0], row[1], row[2])
+            if trig.user_name_lower not in self.lowercase_user_names_to_triggers:
+                self.lowercase_user_names_to_triggers[trig.user_name_lower] = [trig]
+            else:
+                self.lowercase_user_names_to_triggers[trig.user_name_lower].append(trig)
+
+        cursor.close()
 
     def __init__(self, connector, config_section):
         """
@@ -170,13 +185,6 @@ class Echelon(Module):
         """)
         cursor.execute("CREATE INDEX IF NOT EXISTS index_target_name_lower ON triggers (target_name_lower)")
         self.database.commit()
-
-        self.lowercase_user_names_to_triggers = {}
-        cursor.execute("SELECT trigger_id, target_name_lower, regex FROM triggers")
-        for row in cursor:
-            trig = Trigger(row[0], row[1], row[2])
-            if trig.user_name_lower not in self.lowercase_user_names_to_triggers:
-                self.lowercase_user_names_to_triggers[trig.user_name_lower] = [trig]
-            else:
-                self.lowercase_user_names_to_triggers[trig.user_name_lower].append(trig)
         cursor.close()
+
+        self.reload_triggers()
