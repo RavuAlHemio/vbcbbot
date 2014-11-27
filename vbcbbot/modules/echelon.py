@@ -115,16 +115,13 @@ class Echelon(Module):
 
         if lower_sender_name in self.lowercase_user_names_to_triggers:
             for trigger in self.lowercase_user_names_to_triggers[lower_sender_name]:
-                m = trigger.pattern.search(body)
-                if m is None:
-                    continue
-
-                # trigger matched. log this.
                 cursor = self.database.cursor()
-                cursor.execute(
-                    "INSERT INTO incidents (trigger_id, message_id, timestamp) VALUES (?, ?, ?)",
-                    (trigger.trigger_id, message.id, message.timestamp)
-                )
+                for match in trigger.pattern.finditer(body):
+                    # trigger matched. log this.
+                    cursor.execute(
+                        "INSERT INTO incidents (trigger_id, message_id, timestamp) VALUES (?, ?, ?)",
+                        (trigger.trigger_id, message.id, message.timestamp)
+                    )
                 self.database.commit()
 
     def reload_triggers(self):
